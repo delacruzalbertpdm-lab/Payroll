@@ -24,8 +24,11 @@ import {
   updateRecordApi,
   deleteRecordApi,
   resetToSampleExcelData,
+  upsertHolidayApi,
+  deleteHolidayApi,
+  applyPeriodHolidaysApi,
 } from './services/api';
-import { computeFinanceSummary, INITIAL_BENEFIT_CONFIG } from './data/initialPayrollData';
+import { computeFinanceSummary, INITIAL_BENEFIT_CONFIG, INITIAL_HOLIDAYS } from './data/initialPayrollData';
 
 import FinanceSummaryView from './components/FinanceSummaryView';
 import PayrollSheetView from './components/PayrollSheetView';
@@ -33,13 +36,15 @@ import SitesModule from './components/SitesModule';
 import EmployeesModule from './components/EmployeesModule';
 import BenefitsModule from './components/BenefitsModule';
 import PayslipsModule from './components/PayslipsModule';
+import HolidayCalendarModule from './components/HolidayCalendarModule';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('payroll'); // 'summary', 'payroll', 'sites', 'employees', 'benefits', 'payslips'
+  const [activeTab, setActiveTab] = useState('payroll'); // 'summary', 'payroll', 'sites', 'employees', 'benefits', 'holidays', 'payslips'
   const [sites, setSites] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [periods, setPeriods] = useState([]);
   const [records, setRecords] = useState([]);
+  const [holidays, setHolidays] = useState(INITIAL_HOLIDAYS);
   const [benefitConfig, setBenefitConfig] = useState(INITIAL_BENEFIT_CONFIG);
   const [selectedSiteId, setSelectedSiteId] = useState(1);
   const [focusedPayslipRecordId, setFocusedPayslipRecordId] = useState(null);
@@ -53,6 +58,7 @@ export default function App() {
     setEmployees(data.employees || []);
     setPeriods(data.periods || []);
     setRecords(data.records || []);
+    setHolidays(data.holidays || INITIAL_HOLIDAYS);
     setBenefitConfig(data.benefit_config || INITIAL_BENEFIT_CONFIG);
     setBackendConnected(Boolean(data.backendConnected));
     if (data.sites?.length && !selectedSiteId) {
@@ -158,6 +164,24 @@ export default function App() {
     setActiveTab('payslips');
   };
 
+  const handleUpsertHoliday = async (payload) => {
+    const nextHolidays = await upsertHolidayApi(payload);
+    setHolidays(nextHolidays);
+  };
+
+  const handleDeleteHoliday = async (holidayId) => {
+    const nextHolidays = await deleteHolidayApi(holidayId);
+    setHolidays(nextHolidays);
+  };
+
+  const handleApplyPeriodHolidays = async () => {
+    const res = await applyPeriodHolidaysApi(activePeriod.id);
+    if (res?.records) {
+      setRecords(res.records);
+    }
+    return res;
+  };
+
   return (
     <div className="app-shell">
       {/* Sidebar Navigation */}
@@ -242,6 +266,17 @@ export default function App() {
               <ShieldCheck size={17} />
               <span>HR Benefits Module</span>
             </span>
+          </button>
+
+          <button
+            className={`nav-btn ${activeTab === 'holidays' ? 'active' : ''}`}
+            onClick={() => setActiveTab('holidays')}
+          >
+            <span className="nav-btn-left">
+              <Calendar size={17} />
+              <span>Holiday Calendar</span>
+            </span>
+            <span className="nav-badge">{holidays.length}</span>
           </button>
         </div>
 
@@ -333,12 +368,14 @@ export default function App() {
                   records={records}
                   benefitConfig={benefitConfig}
                   activePeriod={activePeriod}
+                  holidays={holidays}
                   selectedSiteId={selectedSiteId}
                   onSelectSiteId={setSelectedSiteId}
                   onUpdateRecord={handleUpdateRecord}
                   onCreateRecord={handleCreateRecord}
                   onDeleteRecord={handleDeleteRecord}
                   onOpenPayslipForRecord={handleOpenPayslipForRecord}
+                  onApplyPeriodHolidays={handleApplyPeriodHolidays}
                 />
               )}
 
@@ -371,6 +408,16 @@ export default function App() {
                   employees={employees}
                   onSaveBenefitsConfig={handleSaveBenefitsConfig}
                   onUpdateEmployee={handleUpdateEmployee}
+                />
+              )}
+
+              {activeTab === 'holidays' && (
+                <HolidayCalendarModule
+                  holidays={holidays}
+                  activePeriod={activePeriod}
+                  onUpsertHoliday={handleUpsertHoliday}
+                  onDeleteHoliday={handleDeleteHoliday}
+                  onApplyPeriodHolidays={handleApplyPeriodHolidays}
                 />
               )}
 

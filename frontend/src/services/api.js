@@ -2,6 +2,7 @@ import {
   buildInitialDataset,
   computeRecordFormulas,
   computeFinanceSummary,
+  INITIAL_HOLIDAYS,
 } from '../data/initialPayrollData';
 
 const STORAGE_KEY = 'buildcore_construction_payroll_v1';
@@ -13,6 +14,9 @@ function loadLocalStore() {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed && Array.isArray(parsed.sites) && Array.isArray(parsed.records)) {
+        if (!Array.isArray(parsed.holidays)) {
+          parsed.holidays = [...INITIAL_HOLIDAYS];
+        }
         return parsed;
       }
     }
@@ -373,16 +377,16 @@ export async function createRecordApi(payload) {
           payload.gcash_charge !== undefined
             ? payload.gcash_charge
             : payMethod === 'GCASH' && emp.has_gcash_charge
-            ? cfg.gcash_charge_default
-            : 0,
+              ? cfg.gcash_charge_default
+              : 0,
         total_office_vale: payload.total_office_vale ?? emp.total_office_vale ?? 0,
         office_vale_deduction: payload.office_vale_deduction ?? emp.default_office_vale_deduction ?? 0,
         sss_contribution:
           payload.sss_contribution !== undefined
             ? payload.sss_contribution
             : emp.has_sss
-            ? cfg.sss_contribution_default
-            : 0,
+              ? cfg.sss_contribution_default
+              : 0,
         sss_salary_loan: payload.sss_salary_loan ?? emp.sss_salary_loan ?? 0,
         sss_calamity_loan: payload.sss_calamity_loan ?? emp.sss_calamity_loan ?? 0,
         sss_emergency_loan: payload.sss_emergency_loan ?? emp.sss_emergency_loan ?? 0,
@@ -392,16 +396,16 @@ export async function createRecordApi(payload) {
           payload.hdmf_contribution !== undefined
             ? payload.hdmf_contribution
             : emp.has_hdmf
-            ? cfg.hdmf_contribution_default
-            : 0,
+              ? cfg.hdmf_contribution_default
+              : 0,
         hdmf_mpl: payload.hdmf_mpl ?? emp.hdmf_mpl ?? 0,
         hdmf_cl: payload.hdmf_cl ?? emp.hdmf_cl ?? 0,
         phic_contribution:
           payload.phic_contribution !== undefined
             ? payload.phic_contribution
             : emp.has_phic
-            ? cfg.phic_contribution_default
-            : 0,
+              ? cfg.phic_contribution_default
+              : 0,
         abuloy: payload.abuloy ?? cfg.abuloy_default ?? 0,
         site_vale: payload.site_vale ?? 0,
         corpo: payload.corpo ?? 0,
@@ -448,5 +452,98 @@ export async function deleteRecordApi(recordId) {
 export function resetToSampleExcelData() {
   localStorage.removeItem(STORAGE_KEY);
   return loadLocalStore();
+}
+
+export async function upsertHolidayApi(payload) {
+  const remote = await tryFetch('/holidays/', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+
+  const store = loadLocalStore();
+  if (!Array.isArray(store.holidays)) store.holidays = [];
+
+  const holidayObj = remote?.holiday || {
+    id: Date.now(),
+    date: payload.date,
+    name: (payload.name || 'Holiday').trim(),
+    holiday_type: payload.holiday_type || 'REGULAR',
+    auto_apply: payload.auto_apply !== undefined ? Boolean(payload.auto_apply) : true,
+  };
+
+  const idx = store.holidays.findIndex((h) => h.date === holidayObj.date);
+  if (idx >= 0) {
+    store.holidays[idx] = { ...store.holidays[idx], ...holidayObj };
+  } else {
+    store.holidays.push(holidayObj);
+  }
+  store.holidays.sort((a, b) => a.date.localeCompare(b.date));
+  saveLocalStore(store);
+  return store.holidays;
+}
+
+export async function deleteHolidayApi(holidayId) {
+  await tryFetch(`/holidays/${holidayId}/`, { method: 'DELETE' });
+  const store = loadLocalStore();
+  store.holidays = (store.holidays || []).filter((h) => Number(h.id) !== Number(holidayId));
+  saveLocalStore(store);
+  return store.holidays;
+}
+
+export async function applyPeriodHolidaysApi(periodId) {
+  const remote = await tryFetch(`/periods/${periodId}/apply-holidays/`, {
+    method: 'POST',
+  });
+
+  const store = loadLocalStore();
+  const cfg = store.benefit_config;
+  const period = store.periods.find((p) => Number(p.id) === Number(periodId)) || store.periods[0];
+
+  if (remote?.records) {
+    store.records = remote.records;
+    saveLocalStore(store);
+    return {
+      records: store.records,
+      applied_holidays: remote.applied_holidays,
+      reg_count: remote.reg_count,
+      spec_count: remote.spec_count,
+      paid_count: remote.paid_count,
+    };
+  }
+
+  const start = period?.start_date || '';
+  const end = period?.end_date || '';
+  const activeHolidays = (store.holidays || []).filter((h) => {
+    if (!h.auto_apply) return false;
+    if (start && end) return h.date >= start && h.date <= end;
+    return true;
+  });
+
+  const reg_count = activeHolidays.filter((h) => h.holiday_type === 'REGULAR').length;
+  const spec_count = activeHolidays.filter((h) => h.holiday_type === 'SPECIAL').length;
+  const paid_count = activeHolidays.filter((h) => h.holiday_type === 'PAID_HOLIDAY').length;
+
+  store.records = store.records.map((r) => {
+    if (Number(r.period_id) !== Number(period.id)) return r;
+    const worked = (parseFloat(r.days_worked) || 0) > 0;
+    return computeRecordFormulas(
+      {
+        ...r,
+        reg_holiday_days: worked ? reg_count : 0,
+        spec_holiday_days: worked ? spec_count : 0,
+        paid_holiday_days: paid_count,
+      },
+      cfg
+    );
+  });
+
+  saveLocalStore(store);
+  return {
+    records: store.records,
+    applied_holidays: activeHolidays.length,
+    reg_count,
+    spec_count,
+    paid_count,
+  };
 }
 

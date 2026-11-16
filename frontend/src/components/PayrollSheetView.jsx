@@ -12,6 +12,8 @@ import {
   Banknote,
   Search,
   X,
+  Sparkles,
+  Calendar,
 } from 'lucide-react';
 
 const fmt = (val) => {
@@ -25,12 +27,14 @@ export default function PayrollSheetView({
   records,
   benefitConfig,
   activePeriod,
+  holidays,
   selectedSiteId,
   onSelectSiteId,
   onUpdateRecord,
   onCreateRecord,
   onDeleteRecord,
   onOpenPayslipForRecord,
+  onApplyPeriodHolidays,
 }) {
   const [paymentFilter, setPaymentFilter] = useState('ALL'); // 'ALL', 'GCASH', 'CASH'
   const [showFullColumns, setShowFullColumns] = useState(false);
@@ -1081,11 +1085,18 @@ export default function PayrollSheetView({
             onClick={() => setShowFullColumns(!showFullColumns)}
           >
             <SlidersHorizontal size={14} />
-            {showFullColumns ? 'Hide Extra Holiday/Loan Columns' : 'Show All 38 Excel Columns'}
+            {showFullColumns
+              ? 'Hide Night Shift / Holiday / Loan Columns'
+              : 'Show Night Shift, Double Pay, 30% & Loans'}
           </button>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {onApplyPeriodHolidays && (
+            <button className="btn btn-emerald btn-sm" onClick={onApplyPeriodHolidays}>
+              <Sparkles size={14} /> Auto-Apply Period Holidays
+            </button>
+          )}
           <button className="btn btn-outline btn-sm" onClick={handleExportCsv}>
             <Download size={14} /> Export CSV
           </button>
@@ -1097,6 +1108,54 @@ export default function PayrollSheetView({
           </button>
         </div>
       </div>
+
+      {/* Period Holidays Alert Banner */}
+      {(() => {
+        const start = activePeriod?.start_date || '2026-10-30';
+        const end = activePeriod?.end_date || '2026-11-05';
+        const inPeriod = (holidays || []).filter((h) => h.date >= start && h.date <= end);
+        if (inPeriod.length === 0) return null;
+        return (
+          <div
+            className="no-print"
+            style={{
+              background: '#fffbeb',
+              border: '1px solid #fcd34d',
+              borderRadius: 10,
+              padding: '10px 16px',
+              marginBottom: 16,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: 10,
+              fontSize: 12.5,
+              color: '#92400e',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <Calendar size={16} color="#d97706" />
+              <strong>Holidays inside this period ({activePeriod?.period_covered}):</strong>
+              {inPeriod.map((h) => (
+                <span key={h.id} className="badge badge-amber">
+                  {h.date}: {h.name} (
+                  {h.holiday_type === 'REGULAR'
+                    ? 'Double Pay'
+                    : h.holiday_type === 'SPECIAL'
+                    ? '+30%'
+                    : 'Paid 100%'}
+                  )
+                </span>
+              ))}
+            </div>
+            {onApplyPeriodHolidays && (
+              <button className="btn btn-sm btn-emerald" onClick={onApplyPeriodHolidays}>
+                <Sparkles size={13} /> Sync to All Workers
+              </button>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Render GCash and Cash Tables just like the Excel Workbook */}
       {(paymentFilter === 'ALL' || paymentFilter === 'GCASH') &&

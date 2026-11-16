@@ -3,7 +3,7 @@ from decimal import Decimal
 from datetime import datetime
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from .models import Site, BenefitConfig, Employee, PayrollPeriod, PayrollRecord
+from .models import Site, BenefitConfig, Employee, PayrollPeriod, PayrollRecord, Holiday
 from .seed import seed_initial_data
 
 
@@ -125,6 +125,8 @@ def serialize_record(r):
         'spec_holiday_amount': to_float(r.spec_holiday_amount),
         'spec_holiday_ot_hours': to_float(r.spec_holiday_ot_hours),
         'spec_holiday_ot_amount': to_float(r.spec_holiday_ot_amount),
+        'paid_holiday_days': to_float(r.paid_holiday_days),
+        'paid_holiday_amount': to_float(r.paid_holiday_amount),
         'sss_rate': to_float(r.sss_rate),
         'gcash_charge': to_float(r.gcash_charge),
         'gross_pay': to_float(r.gross_pay),
@@ -159,6 +161,16 @@ def bootstrap_view(request):
     cfg = serialize_benefit_config(BenefitConfig.get_solo())
     employees = [serialize_employee(e) for e in Employee.objects.select_related('site').all()]
     periods = [serialize_period(p) for p in PayrollPeriod.objects.all()]
+    holidays = [
+        {
+            'id': h.id,
+            'date': h.date.isoformat(),
+            'name': h.name,
+            'holiday_type': h.holiday_type,
+            'auto_apply': h.auto_apply,
+        }
+        for h in Holiday.objects.all()
+    ]
     active_period_id = periods[0]['id'] if periods else None
 
     return JsonResponse({
@@ -166,6 +178,7 @@ def bootstrap_view(request):
         'benefit_config': cfg,
         'employees': employees,
         'periods': periods,
+        'holidays': holidays,
         'active_period_id': active_period_id,
     })
 
@@ -572,7 +585,8 @@ def records_view(request, record_id=None):
         dec_fields = [
             'daily_rate', 'days_worked', 'ot_hours', 'night_diff_hours',
             'rest_day_days', 'rest_day_ot_hours', 'reg_holiday_days', 'reg_holiday_ot_hours',
-            'spec_holiday_days', 'spec_holiday_ot_hours', 'sss_rate', 'gcash_charge',
+            'spec_holiday_days', 'spec_holiday_ot_hours', 'paid_holiday_days',
+            'sss_rate', 'gcash_charge',
             'total_office_vale', 'office_vale_deduction', 'sss_contribution',
             'sss_salary_loan', 'sss_calamity_loan', 'sss_emergency_loan',
             'sss_restructured', 'sss_condonation', 'hdmf_contribution',
@@ -601,3 +615,87 @@ def records_view(request, record_id=None):
 
     return JsonResponse({'error': 'Method not allowed'}, status=405)
 
+
+
+@csrf_exempt
+def holidays_view(request, holiday_id=None):
+    if request.method == 'GET':
+        items = [
+            {
+                'id': h.id,
+                'date': h.date.isoformat(),
+                'name': h.name,
+                'holiday_type': h.holiday_type,
+                'auto_apply': h.auto_apply,
+            }
+            for h in Holiday.objects.all()
+        ]
+        return JsonResponse({'holidays': items})
+
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        d = datetime.strptime(data['date'], '%Y-%m-%d').date()
+        holiday, _ = Holiday.objects.update_or_create(
+            date=d,
+            defaults={
+                'name': data.get('name', 'Holiday').strip(),
+                'holiday_type': data.get('holiday_type', 'REGULAR'),
+                'auto_apply': bool(data.get('auto_apply', True)),
+            }
+        )
+        return JsonResponse({
+            'holiday': {
+                'id': holiday.id,
+                'date': holiday.date.isoformat(),
+                'name': holiday.name,
+                'holiday_type': holiday.holiday_type,
+                'auto_apply': holiday.auto_apply,
+            }
+        }, status=201)
+
+    if request.method == 'DELETE' and holiday_id:
+        Holiday.objects.filter(pk=holiday_id).delete()
+        return JsonResponse({'deleted': True})
+
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+
+@csrf_exempt
+def apply_holidays_view(request, period_id):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    period = PayrollPeriod.objects.get(pk=period_id)
+    if period.start_date and period.end_date:
+        holidays = list(Holiday.objects.filter(
+            date__gte=period.start_date,
+            date__lte=period.end_date,
+            auto_apply=True
+        ))
+    else:
+        holidays = []
+
+    reg_count = sum(1 for h in holidays if h.holiday_type == 'REGULAR')
+    spec_count = sum(1 for h in holidays if h.holiday_type == 'SPECIAL')
+    paid_count = sum(1 for h in holidays if h.holiday_type == 'PAID_HOLIDAY')
+
+    updated = []
+    for rec in PayrollRecord.objects.filter(period=period).select_related('site', 'employee', 'period'):
+        if rec.days_worked > 0:
+            rec.reg_holiday_days = Decimal(str(reg_count))
+            rec.spec_holiday_days = Decimal(str(spec_count))
+            rec.paid_holiday_days = Decimal(str(paid_count))
+        else:
+            rec.reg_holiday_days = Decimal('0.00')
+            rec.spec_holiday_days = Decimal('0.00')
+            rec.paid_holiday_days = Decimal(str(paid_count))
+        rec.save()
+        updated.append(serialize_record(rec))
+
+    return JsonResponse({
+        'applied_holidays': len(holidays),
+        'reg_count': reg_count,
+        'spec_count': spec_count,
+        'paid_count': paid_count,
+        'records': updated,
+    })

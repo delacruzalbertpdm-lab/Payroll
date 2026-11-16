@@ -38,6 +38,16 @@ export const INITIAL_PERIODS = [
   },
 ];
 
+export const INITIAL_HOLIDAYS = [
+  { id: 1, date: '2026-10-31', name: "All Saints' Eve", holiday_type: 'SPECIAL', auto_apply: true },
+  { id: 2, date: '2026-11-01', name: "All Saints' Day", holiday_type: 'SPECIAL', auto_apply: true },
+  { id: 3, date: '2026-11-02', name: "All Souls' Day", holiday_type: 'SPECIAL', auto_apply: true },
+  { id: 4, date: '2026-11-30', name: 'Bonifacio Day', holiday_type: 'REGULAR', auto_apply: true },
+  { id: 5, date: '2026-12-08', name: 'Feast of the Immaculate Conception', holiday_type: 'SPECIAL', auto_apply: true },
+  { id: 6, date: '2026-12-25', name: 'Christmas Day', holiday_type: 'REGULAR', auto_apply: true },
+  { id: 7, date: '2026-12-30', name: 'Rizal Day', holiday_type: 'REGULAR', auto_apply: true },
+];
+
 // [siteId, payMethod, fullName, role, dailyRate, days, otHrs, gcashCharge, totVale, valeDed, sssC, hdmfMpl, phicC, siteVale, corpo, others, remarks]
 const RAW_ROWS = [
   // 1. 24D00099 CALAMBA OVERPASS - GCASH
@@ -237,6 +247,9 @@ export function computeRecordFormulas(rec, cfg = INITIAL_BENEFIT_CONFIG) {
   const spec_holiday_ot_hours = num(rec.spec_holiday_ot_hours);
   const spec_holiday_ot_amount = round2(hourly * num(cfg.spec_holiday_ot_multiplier || 1.69) * spec_holiday_ot_hours);
 
+  const paid_holiday_days = num(rec.paid_holiday_days);
+  const paid_holiday_amount = round2(daily_rate * paid_holiday_days);
+
   const sss_rate = num(rec.sss_rate);
   const gcash_charge = num(rec.gcash_charge);
 
@@ -250,6 +263,7 @@ export function computeRecordFormulas(rec, cfg = INITIAL_BENEFIT_CONFIG) {
       reg_holiday_ot_amount +
       spec_holiday_amount +
       spec_holiday_ot_amount +
+      paid_holiday_amount +
       sss_rate +
       gcash_charge
   );
@@ -314,6 +328,8 @@ export function computeRecordFormulas(rec, cfg = INITIAL_BENEFIT_CONFIG) {
     spec_holiday_amount,
     spec_holiday_ot_hours,
     spec_holiday_ot_amount,
+    paid_holiday_days,
+    paid_holiday_amount,
     sss_rate,
     gcash_charge,
     gross_pay,
@@ -467,6 +483,7 @@ export function buildInitialDataset() {
     benefit_config: { ...INITIAL_BENEFIT_CONFIG },
     employees,
     periods: [...INITIAL_PERIODS],
+    holidays: [...INITIAL_HOLIDAYS],
     records,
   };
 }

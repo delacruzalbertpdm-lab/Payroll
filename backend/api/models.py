@@ -88,6 +88,26 @@ class Employee(models.Model):
         return self.full_name
 
 
+class Holiday(models.Model):
+    TYPE_CHOICES = [
+        ('REGULAR', 'Regular Holiday (Double Pay 200%)'),
+        ('SPECIAL', 'Special Non-Working Holiday (+30%)'),
+        ('PAID_HOLIDAY', 'Paid Holiday (100% Even Unworked)'),
+    ]
+
+    date = models.DateField(unique=True)
+    name = models.CharField(max_length=150)
+    holiday_type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='REGULAR')
+    auto_apply = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['date']
+
+    def __str__(self):
+        return f"{self.date} - {self.name} ({self.holiday_type})"
+
+
 class PayrollPeriod(models.Model):
     STATUS_CHOICES = [
         ('OPEN', 'Open / Draft'),
@@ -153,6 +173,10 @@ class PayrollRecord(models.Model):
     spec_holiday_ot_hours = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal('0.00'))
     spec_holiday_ot_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
 
+    # Paid Holiday (Unworked Regular Holiday 100%)
+    paid_holiday_days = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal('0.00'))
+    paid_holiday_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
+
     # Additions before Gross
     sss_rate = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
     gcash_charge = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
@@ -202,8 +226,10 @@ class PayrollRecord(models.Model):
         self.rest_day_ot_amount = (hourly_rate * cfg.rest_day_ot_multiplier * Decimal(str(self.rest_day_ot_hours or 0))).quantize(Decimal('0.01'))
         self.reg_holiday_amount = (d_rate * cfg.reg_holiday_multiplier * Decimal(str(self.reg_holiday_days or 0))).quantize(Decimal('0.01'))
         self.reg_holiday_ot_amount = (hourly_rate * cfg.reg_holiday_ot_multiplier * Decimal(str(self.reg_holiday_ot_hours or 0))).quantize(Decimal('0.01'))
+        self.spec_holiday_days = self.spec_holiday_days or Decimal('0.00')
         self.spec_holiday_amount = (d_rate * cfg.spec_holiday_multiplier * Decimal(str(self.spec_holiday_days or 0))).quantize(Decimal('0.01'))
         self.spec_holiday_ot_amount = (hourly_rate * cfg.spec_holiday_ot_multiplier * Decimal(str(self.spec_holiday_ot_hours or 0))).quantize(Decimal('0.01'))
+        self.paid_holiday_amount = (d_rate * Decimal(str(self.paid_holiday_days or 0))).quantize(Decimal('0.01'))
 
         self.gross_pay = (
             self.regular_amount
@@ -215,6 +241,7 @@ class PayrollRecord(models.Model):
             + self.reg_holiday_ot_amount
             + self.spec_holiday_amount
             + self.spec_holiday_ot_amount
+            + self.paid_holiday_amount
             + Decimal(str(self.sss_rate or 0))
             + Decimal(str(self.gcash_charge or 0))
         ).quantize(Decimal('0.01'))

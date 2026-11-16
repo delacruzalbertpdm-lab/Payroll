@@ -242,10 +242,34 @@ export default function PayslipsModule({
                     <span>Overtime ({r.ot_hours}h)</span>
                     <span className="mono">{fmt(r.ot_amount)}</span>
                   </div>
-                  {holidayAndRest > 0 && (
+                  {(r.night_diff_amount || 0) > 0 && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <span>Holiday / Rest Day / ND</span>
-                      <span className="mono">{fmt(holidayAndRest)}</span>
+                      <span>Night Shift Diff (+10%, {r.night_diff_hours}h)</span>
+                      <span className="mono">{fmt(r.night_diff_amount)}</span>
+                    </div>
+                  )}
+                  {((r.rest_day_amount || 0) + (r.rest_day_ot_amount || 0)) > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <span>Rest Day (+30% / OT)</span>
+                      <span className="mono">{fmt((r.rest_day_amount || 0) + (r.rest_day_ot_amount || 0))}</span>
+                    </div>
+                  )}
+                  {((r.reg_holiday_amount || 0) + (r.reg_holiday_ot_amount || 0)) > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <span>Regular Holiday (Double Pay)</span>
+                      <span className="mono">{fmt((r.reg_holiday_amount || 0) + (r.reg_holiday_ot_amount || 0))}</span>
+                    </div>
+                  )}
+                  {((r.spec_holiday_amount || 0) + (r.spec_holiday_ot_amount || 0)) > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <span>Special Holiday (+30%)</span>
+                      <span className="mono">{fmt((r.spec_holiday_amount || 0) + (r.spec_holiday_ot_amount || 0))}</span>
+                    </div>
+                  )}
+                  {(r.paid_holiday_amount || 0) > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <span>Paid Holiday ({r.paid_holiday_days}d)</span>
+                      <span className="mono">{fmt(r.paid_holiday_amount)}</span>
                     </div>
                   )}
                   {r.sss_rate > 0 && (

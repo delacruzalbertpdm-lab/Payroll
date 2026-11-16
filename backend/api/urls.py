@@ -13,5 +13,8 @@ urlpatterns = [
     path('payroll/<int:period_id>/', views.payroll_detail_view, name='payroll-detail'),
     path('records/', views.records_view, name='records'),
     path('records/<int:record_id>/', views.records_view, name='record-detail'),
+    path('holidays/', views.holidays_view, name='holidays'),
+    path('holidays/<int:holiday_id>/', views.holidays_view, name='holiday-detail'),
+    path('periods/<int:period_id>/apply-holidays/', views.apply_holidays_view, name='apply-holidays'),
 ]
 

@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BuildCore Construction Payroll — Full System Figma Screens</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg-canvas: #e2e8f0;
+        --bg-app: #f1f5f9;
+        --bg-card: #ffffff;
+        --bg-sidebar: #0f172a;
+        --border: #e2e8f0;
+        --border-strong: #cbd5e1;
+        --text-main: #0f172a;
+        --text-muted: #64748b;
+        --primary: #2563eb;
+        --emerald: #059669;
+        --amber: #d97706;
+        --rose: #e11d48;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        background: var(--bg-canvas);
+        color: var(--text-main);
+        padding: 40px;
+        display: flex;
+        flex-direction: column;
+        gap: 56px;
+        width: 1360px;
+      }
+
+      .mono {
+        font-family: 'JetBrains Mono', monospace;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .artboard-wrap {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .artboard-label {
+        font-size: 16px;
+        font-weight: 800;
+        color: #1e293b;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .artboard-tag {
+        font-size: 11px;
+        font-weight: 700;
+        background: #0f172a;
+        color: #facc15;
+        padding: 3px 9px;
+        border-radius: 6px;
+      }
+
+      .artboard {
+        width: 1280px;
+        background: var(--bg-app);
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 20px 45px rgba(15, 23, 42, 0.14);
+        border: 1px solid #cbd5e1;
+      }
+
+      /* Shared App Shell */
+      .app-shell {
+        display: flex;
+        min-height: 760px;
+      }
+
+      .sidebar {
+        width: 248px;
+        background: var(--bg-sidebar);
+        color: #f8fafc;
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+        border-right: 1px solid #1e293b;
+      }
+
+      .brand-box {
+        padding: 18px 16px;
+        border-bottom: 1px solid #1e293b;
+        display: flex;
+        align-items: center;
+        gap: 11px;
+      }
+
+      .brand-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #f59e0b, #ea580c);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-weight: 800;
+      }
+
+      .brand-title {
+        font-size: 14px;
+        font-weight: 800;
+        color: #fff;
+      }
+
+      .brand-sub {
+        font-size: 10.5px;
+        color: #94a3b8;
+      }
+
+      .nav-section {
+        padding: 14px 16px 6px;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #64748b;
+        font-weight: 700;
+      }
+
+      .nav-item {
+        margin: 2px 10px;
+        padding: 9px 12px;
+        border-radius: 8px;
+        font-size: 12.5px;
+        font-weight: 500;
+        color: #cbd5e1;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .nav-item.active {
+        background: var(--primary);
+        color: #fff;
+        font-weight: 700;
+      }
+
+      .nav-badge {
+        font-size: 10.5px;
+        padding: 2px 7px;
+        border-radius: 99px;
+        background: rgba(255, 255, 255, 0.14);
+      }
+
+      .main-area {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+
+      .topbar {
+        background: #fff;
+        border-bottom: 1px solid var(--border);
+        padding: 14px 22px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .content {
+        padding: 20px 22px;
+      }
+
+      .card {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+        margin-bottom: 16px;
+      }
+
+      .card-header {
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--border);
+        background: #f8fafc;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+
+      .kpi-card {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 14px 16px;
+      }
+
+      .kpi-label {
+        font-size: 10.5px;
+        font-weight: 700;
+        color: var(--text-muted);
+        margin-bottom: 4px;
+      }
+
+      .kpi-val {
+        font-size: 20px;
+        font-weight: 800;
+        color: var(--text-main);
+      }
+
+      .sheet-tabs {
+        display: flex;
+        gap: 6px;
+        padding: 10px 12px;
+        background: #0f172a;
+        border-radius: 10px;
+        margin-bottom: 14px;
+        overflow: hidden;
+      }
+
+      .sheet-tab {
+        padding: 6px 11px;
+        border-radius: 6px;
+        background: #1e293b;
+        color: #cbd5e1;
+        font-size: 11px;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+
+      .sheet-tab.active {
+        background: #facc15;
+        color: #0f172a;
+        font-weight: 800;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 11.5px;
+      }
+
+      th,
+      td {
+        border: 1px solid #cbd5e1;
+        padding: 7px 9px;
+      }
+
+      th {
+        background: #1e293b;
+        color: #fff;
+        font-size: 10.5px;
+        text-transform: uppercase;
+      }
+
+      .badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 99px;
+        font-size: 10.5px;
+        font-weight: 700;
+      }
+
+      .badge-blue {
+        background: #dbeafe;
+        color: #1d4ed8;
+      }
+
+      .badge-green {
+        background: #dcfce7;
+        color: #15803d;
+      }
+
+      .badge-amber {
+        background: #fef3c7;
+        color: #b45309;
+      }
+
+      .btn {
+        padding: 7px 12px;
+        border-radius: 7px;
+        font-size: 12px;
+        font-weight: 600;
+        border: 1px solid var(--border-strong);
+        background: #fff;
+        color: var(--text-main);
+      }
+
+      .btn-primary {
+        background: var(--primary);
+        color: #fff;
+        border-color: var(--primary);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- SCREEN 1: LOGIN SCREEN -->
+    <div class="artboard-wrap">
+      <div class="artboard-label">
+        <span class="artboard-tag">SCREEN 01</span>
+        <span>Login &amp; Role-Based Access</span>
+      </div>
+      <div class="artboard" style="display: flex; min-height: 720px">
+        <div
+          style="
+            width: 46%;
+            background: #0f172a;
+            color: #f8fafc;
+            padding: 46px 48px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+          "
+        >
+          <div style="display: flex; align-items: center; gap: 12px">
+            <div class="brand-icon">BC</div>
+            <div>
+              <div class="brand-title" style="font-size: 17px">BUILDCORE PAYROLL</div>
+              <div class="brand-sub">Construction Site Payroll ERP</div>
+            </div>
+          </div>
+          <div>
+            <div
+              style="
+                display: inline-block;
+                padding: 5px 12px;
+                border-radius: 99px;
+                background: rgba(16, 185, 129, 0.15);
+                color: #34d399;
+                font-size: 12px;
+                font-weight: 600;
+                margin-bottom: 16px;
+              "
+            >
+              ● 8 Active Project Sites • GCash &amp; Cash Ready
+            </div>
+            <h1 style="font-size: 30px; line-height: 1.2; font-weight: 800; margin-bottom: 12px">
+              Weekly Site Payroll &amp; HR Management
+            </h1>
+            <p style="font-size: 13.5px; color: #94a3b8; line-height: 1.6">
+              Unified construction payroll computation for Regular Days, Overtime, Night
+              Differential, Holidays, Leave, Office Vale, Uniform HR Benefits, and printable
+              Employee Payslips.
+            </p>
+          </div>
+          <div style="font-size: 12px; color: #64748b; display: flex; justify-content: space-between">
+            <span>BuildCore Construction ERP</span>
+            <span class="mono">v1.0 • Asia/Manila</span>
+          </div>
+        </div>
+        <div
+          style="
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f1f5f9;
+            padding: 40px;
+          "
+        >
+          <div
+            style="
+              width: 420px;
+              background: #fff;
+              border: 1px solid #e2e8f0;
+              border-radius: 14px;
+              padding: 34px 32px;
+              box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+            "
+          >
+            <h2 style="font-size: 21px; font-weight: 800; margin-bottom: 6px">
+              Sign in to your account
+            </h2>
+            <p style="font-size: 13px; color: #64748b; margin-bottom: 20px">
+              Select your department role and enter your credentials
+            </p>
+            <div
+              style="
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 6px;
+                background: #f1f5f9;
+                padding: 4px;
+                border-radius: 10px;
+                margin-bottom: 18px;
+                text-align: center;
+                font-size: 12px;
+                font-weight: 600;
+              "
+            >
+              <div style="background: #fff; color: #2563eb; padding: 7px; border-radius: 7px">
+                Finance / Admin
+              </div>
+              <div style="color: #64748b; padding: 7px">HR Benefits</div>
+              <div style="color: #64748b; padding: 7px">Site Engineer</div>
+            </div>
+            <div style="margin-bottom: 14px">
+              <div style="font-size: 12px; font-weight: 600; margin-bottom: 6px">
+                Work Email or Employee ID
+              </div>
+              <div
+                style="
+                  border: 1px solid #cbd5e1;
+                  border-radius: 8px;
+                  padding: 10px 12px;
+                  font-size: 13px;
+                "
+              >
+                payroll.admin@buildcore.ph
+              </div>
+            </div>
+            <div style="margin-bottom: 20px">
+              <div style="font-size: 12px; font-weight: 600; margin-bottom: 6px">Password</div>
+              <div
+                style="
+                  border: 1px solid #cbd5e1;
+                  border-radius: 8px;
+                  padding: 10px 12px;
+                  font-size: 13px;
+                "
+              >
+                ••••••••••••
+              </div>
+            </div>
+            <div
+              class="btn btn-primary"
+              style="width: 100%; text-align: center; padding: 11px; font-size: 13.5px"
+            >
+              Sign In to Payroll System
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCREEN 2: SITE PAYROLL SHEETS -->
+    <div class="artboard-wrap">
+      <div class="artboard-label">
+        <span class="artboard-tag">SCREEN 02</span>
+        <span>Site Payroll Sheets (GCash &amp; Cash Weekly Computation)</span>
+      </div>
+      <div class="artboard">
+        <div class="app-shell">
+          <aside class="sidebar">
+            <div class="brand-box">
+              <div class="brand-icon">BC</div>
+              <div>
+                <div class="brand-title">BUILDCORE PAYROLL</div>
+                <div class="brand-sub">Construction Site Payroll ERP</div>
+              </div>
+            </div>
+            <div class="nav-section">Payroll Operations</div>
+            <div class="nav-item active">
+              <span>Site Payroll Sheets</span>
+              <span class="nav-badge">114</span>
+            </div>
+            <div class="nav-item"><span>Finance Summary</span></div>
+            <div class="nav-item"><span>Employee Payslips</span></div>
+            <div class="nav-section">Management &amp; HR</div>
+            <div class="nav-item">
+              <span>Project Sites</span>
+              <span class="nav-badge">8</span>
+            </div>
+            <div class="nav-item">
+              <span>Employees</span>
+              <span class="nav-badge">92</span>
+            </div>
+            <div class="nav-item"><span>HR Benefits &amp; Leave</span></div>
+          </aside>
+          <div class="main-area">
+            <div class="topbar">
+              <div>
+                <div style="font-weight: 800; font-size: 15px">
+                  WEEKLY CONSTRUCTION PAYROLL SYSTEM
+                </div>
+                <div style="font-size: 11.5px; color: #64748b">
+                  Active Period: <strong>OCTOBER 30-NOVEMBER 5, 2026</strong> • Live Formula Engine
+                </div>
+              </div>
+              <div style="display: flex; gap: 8px">
+                <span class="btn">Export CSV</span>
+                <span class="btn btn-primary">+ Add Worker to Payroll</span>
+              </div>
+            </div>
+            <div class="content">
+              <div class="sheet-tabs">
+                <div class="sheet-tab">ALL SITES (114)</div>
+                <div class="sheet-tab active">24D00099 CALAMBA OVERPASS</div>
+                <div class="sheet-tab">25D00290 LUKUTANG MALAKI RIVER 5</div>
+                <div class="sheet-tab">22D00095 UPLB ASH BUILDING</div>
+                <div class="sheet-tab">26OE0038 DIMASALANG PH3</div>
+              </div>
+              <div class="card">
+                <div class="card-header" style="background: #eff6ff">
+                  <div>
+                    <span class="badge badge-blue">GCASH PAYROLL REPORT</span>
+                    <strong style="margin-left: 8px; font-size: 13.5px"
+                      >24D00099 CALAMBA OVERPASS</strong
+                    >
+                  </div>
+                  <div style="display: flex; gap: 16px; align-items: center">
+                    <div>
+                      <div style="font-size: 10px; color: #64748b">GROSS PAYROLL</div>
+                      <strong class="mono">₱63,075.00</strong>
+                    </div>
+                    <div
+                      style="
+                        background: #0f172a;
+                        color: #4ade80;
+                        padding: 5px 12px;
+                        border-radius: 7px;
+                      "
+                    >
+                      <div style="font-size: 9px; color: #94a3b8">NET PAYROLL</div>
+                      <strong class="mono">₱60,475.00</strong>
+                    </div>
+                  </div>
+                </div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th style="text-align: left">FULL NAME</th>
+                      <th>DAILY RATE</th>
+                      <th>NO. OF DAYS</th>
+                      <th>REGULAR AMT</th>
+                      <th>OT HRS</th>
+                      <th>OT AMT</th>
+                      <th>GCASH FEE</th>
+                      <th style="background: #0369a1">GROSS</th>
+                      <th>PHIC</th>
+                      <th>SITE VALE</th>
+                      <th>CORPO</th>
+                      <th style="background: #14532d">NET PAY</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td style="text-align: center">1</td>
+                      <td><strong>MATA, JOSEPH</strong></td>
+                      <td class="mono" style="text-align: right">₱630.00</td>
+                      <td class="mono" style="text-align: right; background: #eff6ff">5</td>
+                      <td class="mono" style="text-align: right">3,150.00</td>
+                      <td class="mono" style="text-align: right; background: #f0fdf4">40</td>
+                      <td class="mono" style="text-align: right">3,150.00</td>
+                      <td class="mono" style="text-align: right">20.00</td>
+                      <td class="mono" style="text-align: right; background: #e0f2fe; font-weight: 700">
+                        6,320.00
+                      </td>
+                      <td class="mono" style="text-align: right">250.00</td>
+                      <td class="mono" style="text-align: right">0.00</td>
+                      <td class="mono" style="text-align: right">0.00</td>
+                      <td class="mono" style="text-align: right; background: #dcfce7; font-weight: 800; color: #15803d">
+                        6,070.00
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="text-align: center">2</td>
+                      <td><strong>AGBONES, PUBLEO</strong></td>
+                      <td class="mono" style="text-align: right">₱600.00</td>
+                      <td class="mono" style="text-align: right; background: #eff6ff">5</td>
+                      <td class="mono" style="text-align: right">3,000.00</td>
+                      <td class="mono" style="text-align: right; background: #f0fdf4">40</td>
+                      <td class="mono" style="text-align: right">3,000.00</td>
+                      <td class="mono" style="text-align: right">20.00</td>
+                      <td class="mono" style="text-align: right; background: #e0f2fe; font-weight: 700">
+                        6,020.00
+                      </td>
+                      <td class="mono" style="text-align: right">0.00</td>
+                      <td class="mono" style="text-align: right">0.00</td>
+                      <td class="mono" style="text-align: right">0.00</td>
+                      <td class="mono" style="text-align: right; background: #dcfce7; font-weight: 800; color: #15803d">
+                        6,020.00
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="text-align: center">3</td>
+                      <td><strong>LABANDRIA, RONALD</strong></td>
+                      <td class="mono" style="text-align: right">₱740.00</td>
+                      <td class="mono" style="text-align: right; background: #eff6ff">5</td>
+                      <td class="mono" style="text-align: right">3,700.00</td>
+                      <td class="mono" style="text-align: right; background: #f0fdf4">40</td>
+                      <td class="mono" style="text-align: right">3,700.00</td>
+                      <td class="mono" style="text-align: right">20.00</td>
+                      <td class="mono" style="text-align: right; background: #e0f2fe; font-weight: 700">
+                        7,420.00
+                      </td>
+                      <td class="mono" style="text-align: right">250.00</td>
+                      <td class="mono" style="text-align: right">0.00</td>
+                      <td class="mono" style="text-align: right">200.00</td>
+                      <td class="mono" style="text-align: right; background: #dcfce7; font-weight: 800; color: #15803d">
+                        6,970.00
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="text-align: center">4</td>
+                      <td><strong>SALVADOR, ROLAND</strong></td>
+                      <td class="mono" style="text-align: right">₱610.00</td>
+                      <td class="mono" style="text-align: right; background: #eff6ff">5</td>
+                      <td class="mono" style="text-align: right">3,050.00</td>
+                      <td class="mono" style="text-align: right; background: #f0fdf4">40</td>
+                      <td class="mono" style="text-align: right">3,050.00</td>
+                      <td class="mono" style="text-align: right">20.00</td>
+                      <td class="mono" style="text-align: right; background: #e0f2fe; font-weight: 700">
+                        6,120.00
+                      </td>
+                      <td class="mono" style="text-align: right">250.00</td>
+                      <td class="mono" style="text-align: right">1,000.00</td>
+                      <td class="mono" style="text-align: right">200.00</td>
+                      <td class="mono" style="text-align: right; background: #dcfce7; font-weight: 800; color: #15803d">
+                        4,670.00
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCREEN 3: FINANCE SUMMARY DASHBOARD -->
+    <div class="artboard-wrap">
+      <div class="artboard-label">
+        <span class="artboard-tag">SCREEN 03</span>
+        <span>Finance Department Summary (GCash Portal vs. Cash Disbursement)</span>
+      </div>
+      <div class="artboard">
+        <div class="app-shell">
+          <aside class="sidebar">
+            <div class="brand-box">
+              <div class="brand-icon">BC</div>
+              <div>
+                <div class="brand-title">BUILDCORE PAYROLL</div>
+                <div class="brand-sub">Construction Site Payroll ERP</div>
+              </div>
+            </div>
+            <div class="nav-section">Payroll Operations</div>
+            <div class="nav-item"><span>Site Payroll Sheets</span></div>
+            <div class="nav-item active"><span>Finance Summary</span></div>
+            <div class="nav-item"><span>Employee Payslips</span></div>
+            <div class="nav-section">Management &amp; HR</div>
+            <div class="nav-item"><span>Project Sites</span></div>
+            <div class="nav-item"><span>Employees</span></div>
+            <div class="nav-item"><span>HR Benefits &amp; Leave</span></div>
+          </aside>
+          <div class="main-area">
+            <div class="topbar">
+              <div style="font-weight: 800; font-size: 15px">
+                FINANCE DEPARTMENT — WEEKLY PAYROLL SUMMARY
+              </div>
+              <span class="btn">Print Finance Summary</span>
+            </div>
+            <div class="content">
+              <div class="kpi-grid">
+                <div class="kpi-card">
+                  <div class="kpi-label">TOTAL GROSS PAYROLL</div>
+                  <div class="kpi-val mono">₱477,485.00</div>
+                </div>
+                <div class="kpi-card" style="border-left: 4px solid #2563eb">
+                  <div class="kpi-label">DEDUCTED TO GCASH PORTAL</div>
+                  <div class="kpi-val mono" style="color: #1d4ed8">₱418,135.00</div>
+                </div>
+                <div class="kpi-card" style="border-left: 4px solid #d97706">
+                  <div class="kpi-label">OFFICE VALE (ENCASHMENT)</div>
+                  <div class="kpi-val mono" style="color: #b45309">₱15,500.00</div>
+                </div>
+                <div class="kpi-card" style="border-left: 4px solid #059669">
+                  <div class="kpi-label">TOTAL CASH PAYROLL (NET)</div>
+                  <div class="kpi-val mono" style="color: #059669">₱43,639.00</div>
+                </div>
+              </div>
+              <div class="card">
+                <div class="card-header" style="background: #eff6ff">
+                  <strong>GCASH WEEKLY PAYROLL SUMMARY BY PROJECT SITE</strong>
+                  <span class="badge badge-blue">GCASH PORTAL</span>
+                </div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th style="text-align: left">PROJECT NAME</th>
+                      <th>EMPLOYEES</th>
+                      <th>MAN HRS (DAYS)</th>
+                      <th>MAN HRS (OT)</th>
+                      <th>GROSS</th>
+                      <th>OFFICE VALE</th>
+                      <th>PHIC</th>
+                      <th>SITE VALE</th>
+                      <th>NET PAYROLL</th>
+                      <th style="background: #1e3a8a">DEDUCTED TO GCASH</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td style="text-align: center">1</td>
+                      <td><strong>24D00099 CALAMBA OVERPASS</strong></td>
+                      <td style="text-align: center">5</td>
+                      <td class="mono" style="text-align: right">200.00</td>
+                      <td class="mono" style="text-align: right">580.00</td>
+                      <td class="mono" style="text-align: right">63,075.00</td>
+                      <td class="mono" style="text-align: right">0.00</td>
+                      <td class="mono" style="text-align: right">1,000.00</td>
+                      <td class="mono" style="text-align: right">1,000.00</td>
+                      <td class="mono" style="text-align: right; background: #dcfce7; font-weight: 700">
+                        60,475.00
+                      </td>
+                      <td class="mono" style="text-align: right; background: #dbeafe; font-weight: 700">
+                        63,075.00
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="text-align: center">2</td>
+                      <td><strong>25D00290 LUKUTANG MALAKI RIVER 5</strong></td>
+                      <td style="text-align: center">40</td>
+                      <td class="mono" style="text-align: right">1,224.00</td>
+                      <td class="mono" style="text-align: right">692.00</td>
+                      <td class="mono" style="text-align: right">160,012.50</td>
+                      <td class="mono" style="text-align: right">5,000.00</td>
+                      <td class="mono" style="text-align: right">3,750.00</td>
+                      <td class="mono" style="text-align: right">18,500.00</td>
+                      <td class="mono" style="text-align: right; background: #dcfce7; font-weight: 700">
+                        132,337.50
+                      </td>
+                      <td class="mono" style="text-align: right; background: #dbeafe; font-weight: 700">
+                        155,012.50
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="text-align: center">3</td>
+                      <td><strong>26OE0028 NMED OFFICE PH6</strong></td>
+                      <td style="text-align: center">22</td>
+                      <td class="mono" style="text-align: right">864.00</td>
+                      <td class="mono" style="text-align: right">157.00</td>
+                      <td class="mono" style="text-align: right">87,658.75</td>
+                      <td class="mono" style="text-align: right">4,500.00</td>
+                      <td class="mono" style="text-align: right">3,750.00</td>
+                      <td class="mono" style="text-align: right">12,020.00</td>
+                      <td class="mono" style="text-align: right; background: #dcfce7; font-weight: 700">
+                        66,107.75
+                      </td>
+                      <td class="mono" style="text-align: right; background: #dbeafe; font-weight: 700">
+                        83,158.75
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCREEN 4: HR BENEFITS, LEAVE & LOANS -->
+    <div class="artboard-wrap">
+      <div class="artboard-label">
+        <span class="artboard-tag">SCREEN 04</span>
+        <span>HR Uniform Benefits, Leave Credits &amp; Loan Ledger</span>
+      </div>
+      <div class="artboard">
+        <div class="app-shell">
+          <aside class="sidebar">
+            <div class="brand-box">
+              <div class="brand-icon">BC</div>
+              <div>
+                <div class="brand-title">BUILDCORE PAYROLL</div>
+                <div class="brand-sub">Construction Site Payroll ERP</div>
+              </div>
+            </div>
+            <div class="nav-section">Payroll Operations</div>
+            <div class="nav-item"><span>Site Payroll Sheets</span></div>
+            <div class="nav-item"><span>Finance Summary</span></div>
+            <div class="nav-item"><span>Employee Payslips</span></div>
+            <div class="nav-section">Management &amp; HR</div>
+            <div class="nav-item"><span>Project Sites</span></div>
+            <div class="nav-item"><span>Employees</span></div>
+            <div class="nav-item active"><span>HR Benefits &amp; Leave</span></div>
+          </aside>
+          <div class="main-area">
+            <div class="topbar">
+              <div style="font-weight: 800; font-size: 15px">
+                HR UNIFORM BENEFITS, LEAVE &amp; LOAN CONFIGURATION
+              </div>
+              <span class="btn btn-primary">Save &amp; Apply to Current Payroll</span>
+            </div>
+            <div class="content">
+              <div class="card" style="padding: 18px">
+                <div style="font-weight: 800; margin-bottom: 12px">
+                  Uniform Company Benefit Rates &amp; Premium Multipliers
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px">
+                  <div style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px">
+                    <div style="font-size: 11px; color: #64748b">PHIC Contribution</div>
+                    <div class="mono" style="font-size: 16px; font-weight: 800">₱250.00</div>
+                  </div>
+                  <div style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px">
+                    <div style="font-size: 11px; color: #64748b">SSS Contribution</div>
+                    <div class="mono" style="font-size: 16px; font-weight: 800">₱425.00</div>
+                  </div>
+                  <div style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px">
+                    <div style="font-size: 11px; color: #64748b">GCash Charge Allowance</div>
+                    <div class="mono" style="font-size: 16px; font-weight: 800">₱20.00</div>
+                  </div>
+                  <div style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px">
+                    <div style="font-size: 11px; color: #64748b">Double Pay / 30% Holiday</div>
+                    <div class="mono" style="font-size: 16px; font-weight: 800">200% / 130%</div>
+                  </div>
+                </div>
+              </div>
+              <div class="card">
+                <div class="card-header">
+                  <strong>ACTIVE LOANS, OFFICE VALE &amp; LEAVE CREDITS LEDGER</strong>
+                </div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="text-align: left">EMPLOYEE</th>
+                      <th style="text-align: left">SITE</th>
+                      <th>VL / SL CREDITS</th>
+                      <th>TOTAL OFFICE VALE</th>
+                      <th>WEEKLY DEDUCTION</th>
+                      <th>REMAINING BALANCE</th>
+                      <th>STATUS</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><strong>GUSTILO, JOSHUA ALEXANDER</strong></td>
+                      <td>25D00290 LUKUTANG MALAKI</td>
+                      <td class="mono" style="text-align: center">5 VL / 5 SL</td>
+                      <td class="mono" style="text-align: right">₱34,000.00</td>
+                      <td class="mono" style="text-align: right; color: #be123c">₱1,000.00</td>
+                      <td class="mono" style="text-align: right; font-weight: 700">₱33,000.00</td>
+                      <td style="text-align: center">
+                        <span class="badge badge-amber">Active Vale</span>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><strong>ALCANAR, JOLAN</strong></td>
+                      <td>26OE0028 NMED OFFICE PH6</td>
+                      <td class="mono" style="text-align: center">4 VL / 5 SL</td>
+                      <td class="mono" style="text-align: right">₱22,500.00</td>
+                      <td class="mono" style="text-align: right; color: #be123c">₱1,500.00</td>
+                      <td class="mono" style="text-align: right; font-weight: 700">₱21,000.00</td>
+                      <td style="text-align: center">
+                        <span class="badge badge-amber">Active Vale</span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCREEN 5: PRINTABLE EMPLOYEE PAYSLIPS -->
+    <div class="artboard-wrap">
+      <div class="artboard-label">
+        <span class="artboard-tag">SCREEN 05</span>
+        <span>Printable Weekly Employee Payslips</span>
+      </div>
+      <div class="artboard" style="padding: 28px; background: #f1f5f9">
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 18px;
+          "
+        >
+          <div>
+            <div style="font-size: 18px; font-weight: 800">
+              Employee Weekly Payslips Generator
+            </div>
+            <div style="font-size: 12.5px; color: #64748b">
+              Period: OCTOBER 30-NOVEMBER 5, 2026
+            </div>
+          </div>
+          <span class="btn btn-primary">Print Batch Payslips</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px">
+          <div
+            style="
+              background: #fff;
+              border: 1.5px solid #0f172a;
+              border-radius: 8px;
+              padding: 20px;
+            "
+          >
+            <div
+              style="
+                border-bottom: 2px solid #0f172a;
+                padding-bottom: 10px;
+                margin-bottom: 12px;
+                display: flex;
+                justify-content: space-between;
+              "
+            >
+              <div>
+                <div style="font-weight: 800; font-size: 14px">CONSTRUCTION WEEKLY PAYSLIP</div>
+                <div style="font-size: 11.5px; color: #1d4ed8; font-weight: 700">
+                  PROJECT: 24D00099 CALAMBA OVERPASS
+                </div>
+              </div>
+              <span class="badge badge-blue">GCASH</span>
+            </div>
+            <div style="font-weight: 800; font-size: 14px; margin-bottom: 10px">
+              LABANDRIA, RONALD — ₱740.00/day × 5 days
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; font-size: 12px">
+              <div>
+                <div style="font-weight: 800; color: #0369a1; margin-bottom: 6px">EARNINGS</div>
+                <div style="display: flex; justify-content: space-between">
+                  <span>Regular Pay (5d)</span><span class="mono">3,700.00</span>
+                </div>
+                <div style="display: flex; justify-content: space-between">
+                  <span>Overtime (40h)</span><span class="mono">3,700.00</span>
+                </div>
+                <div style="display: flex; justify-content: space-between">
+                  <span>GCash Charge</span><span class="mono">20.00</span>
+                </div>
+                <div
+                  style="
+                    display: flex;
+                    justify-content: space-between;
+                    font-weight: 800;
+                    margin-top: 6px;
+                  "
+                >
+                  <span>GROSS PAY</span><span class="mono">₱7,420.00</span>
+                </div>
+              </div>
+              <div>
+                <div style="font-weight: 800; color: #be123c; margin-bottom: 6px">DEDUCTIONS</div>
+                <div style="display: flex; justify-content: space-between">
+                  <span>PHIC</span><span class="mono">250.00</span>
+                </div>
+                <div style="display: flex; justify-content: space-between">
+                  <span>Corpo</span><span class="mono">200.00</span>
+                </div>
+                <div
+                  style="
+                    display: flex;
+                    justify-content: space-between;
+                    font-weight: 800;
+                    margin-top: 6px;
+                    color: #be123c;
+                  "
+                >
+                  <span>TOTAL DED.</span><span class="mono">₱450.00</span>
+                </div>
+              </div>
+            </div>
+            <div
+              style="
+                margin-top: 14px;
+                background: #0f172a;
+                color: #fff;
+                padding: 10px 14px;
+                border-radius: 6px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+              "
+            >
+              <span style="font-size: 11px; color: #94a3b8">NET TAKE-HOME PAY</span>
+              <strong class="mono" style="font-size: 18px; color: #4ade80">₱6,970.00</strong>
+            </div>
+          </div>
+
+          <div
+            style="
+              background: #fff;
+              border: 1.5px solid #0f172a;
+              border-radius: 8px;
+              padding: 20px;
+            "
+          >
+            <div
+              style="
+                border-bottom: 2px solid #0f172a;
+                padding-bottom: 10px;
+                margin-bottom: 12px;
+                display: flex;
+                justify-content: space-between;
+              "
+            >
+              <div>
+                <div style="font-weight: 800; font-size: 14px">CONSTRUCTION WEEKLY PAYSLIP</div>
+                <div style="font-size: 11.5px; color: #059669; font-weight: 700">
+                  PROJECT: 24D00099 CALAMBA OVERPASS
+                </div>
+              </div>
+              <span class="badge badge-green">CASH</span>
+            </div>
+            <div style="font-weight: 800; font-size: 14px; margin-bottom: 10px">
+              ENFORCER 1 — ₱400.00/day × 5 days
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; font-size: 12px">
+              <div>
+                <div style="font-weight: 800; color: #0369a1; margin-bottom: 6px">EARNINGS</div>
+                <div style="display: flex; justify-content: space-between">
+                  <span>Regular Pay (5d)</span><span class="mono">2,000.00</span>
+                </div>
+                <div
+                  style="
+                    display: flex;
+                    justify-content: space-between;
+                    font-weight: 800;
+                    margin-top: 6px;
+                  "
+                >
+                  <span>GROSS PAY</span><span class="mono">₱2,000.00</span>
+                </div>
+              </div>
+              <div>
+                <div style="font-weight: 800; color: #be123c; margin-bottom: 6px">DEDUCTIONS</div>
+                <div style="display: flex; justify-content: space-between">
+                  <span>None</span><span class="mono">0.00</span>
+                </div>
+                <div
+                  style="
+                    display: flex;
+                    justify-content: space-between;
+                    font-weight: 800;
+                    margin-top: 6px;
+                    color: #be123c;
+                  "
+                >
+                  <span>TOTAL DED.</span><span class="mono">₱0.00</span>
+                </div>
+              </div>
+            </div>
+            <div
+              style="
+                margin-top: 14px;
+                background: #0f172a;
+                color: #fff;
+                padding: 10px 14px;
+                border-radius: 6px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+              "
+            >
+              <span style="font-size: 11px; color: #94a3b8">NET TAKE-HOME PAY</span>
+              <strong class="mono" style="font-size: 18px; color: #4ade80">₱2,000.00</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
