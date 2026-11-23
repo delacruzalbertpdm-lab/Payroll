@@ -6,7 +6,7 @@ import {
 } from '../data/initialPayrollData';
 
 const STORAGE_KEY = 'buildcore_construction_payroll_v1';
-const API_BASE = 'http://127.0.0.1:8000/api';
+const API_BASE = 'http://localhost:8000/api';
 
 function loadLocalStore() {
   try {
@@ -41,10 +41,11 @@ async function tryFetch(path, options = {}) {
   const timeout = setTimeout(() => controller.abort(), 1800);
   try {
     const res = await fetch(`${API_BASE}${path}`, {
-      headers: { 'Content-Type': 'application/json' },
-      signal: controller.signal,
-      ...options,
-    });
+  headers: { 'Content-Type': 'application/json' },
+  credentials: 'include',
+  signal: controller.signal,
+  ...options,
+});
     clearTimeout(timeout);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
@@ -547,3 +548,115 @@ export async function applyPeriodHolidaysApi(periodId) {
   };
 }
 
+const AUTH_API = 'http://localhost:8000/api';
+
+async function getCsrfToken() {
+  await fetch(`${AUTH_API}/auth/csrf/`, {
+    credentials: 'include',
+  });
+
+  const cookie = document.cookie
+    .split('; ')
+    .find((row) => row.startsWith('csrftoken='));
+
+  return cookie ? cookie.split('=')[1] : '';
+}
+
+async function authRequest(endpoint, payload = {}) {
+  const csrfToken = await getCsrfToken();
+
+  const response = await fetch(`${AUTH_API}/auth/${endpoint}/`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': csrfToken,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Request failed.');
+  }
+
+  return data;
+}
+
+export async function loginApi(username, password) {
+  return authRequest('login', { username, password });
+}
+
+
+export async function signupApi(username, password, confirm_password, role = 'HR_STAFF') {
+  return authRequest('signup', {
+    username,
+    password,
+    confirm_password,
+    role,
+  });
+}
+
+
+export async function checkAuthApi() {
+  const response = await fetch(`${AUTH_API}/auth/status/`, {
+    credentials: 'include',
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    return { authenticated: false };
+  }
+
+  return data;
+}
+
+export async function logoutApi() {
+  return authRequest('logout');
+}
+
+
+export async function fetchAuditLogsApi() {
+  const csrfToken = await getCsrfToken();
+
+  const response = await fetch(`${API_BASE}/audit-logs/`, {
+    method: 'GET',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': csrfToken,
+    },
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Failed to fetch audit logs.');
+  }
+
+  return data;
+}
+
+export async function createAuditLogApi(action, details = '') {
+  const csrfToken = await getCsrfToken();
+
+  const response = await fetch(`${API_BASE}/audit-logs/`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': csrfToken,
+    },
+    body: JSON.stringify({ action, details }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Failed to create audit log.');
+  }
+
+  return data;
+}

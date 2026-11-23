@@ -1,3 +1,4 @@
+
 from django.http import HttpResponse
 
 
@@ -11,8 +12,20 @@ class CorsMiddleware:
         else:
             response = self.get_response(request)
 
-        response['Access-Control-Allow-Origin'] = '*'
-        response['Access-Control-Allow-Methods'] = 'GET, POST, PUT, PATCH, DELETE, OPTIONS'
-        response['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With'
-        return response
+        origin = request.headers.get('Origin', '')
 
+        allowed_origins = [
+            'http://localhost:5173',
+            'http://127.0.0.1:5173',
+            'http://localhost:5174',
+            'http://127.0.0.1:5174',
+        ]
+
+        if origin in allowed_origins:
+            response['Access-Control-Allow-Origin'] = origin
+
+        response['Access-Control-Allow-Credentials'] = 'true'
+        response['Access-Control-Allow-Methods'] = 'GET, POST, PUT, PATCH, DELETE, OPTIONS'
+        response['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With, X-CSRFToken'
+
+        return response

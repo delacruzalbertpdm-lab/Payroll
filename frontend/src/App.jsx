@@ -9,6 +9,7 @@ import {
   HardHat,
   RotateCcw,
   Calendar,
+    ClipboardList,
 } from 'lucide-react';
 
 import {
@@ -27,6 +28,10 @@ import {
   upsertHolidayApi,
   deleteHolidayApi,
   applyPeriodHolidaysApi,
+  loginApi,
+  signupApi,
+  checkAuthApi,
+  logoutApi,
 } from './services/api';
 import { computeFinanceSummary, INITIAL_BENEFIT_CONFIG, INITIAL_HOLIDAYS } from './data/initialPayrollData';
 
@@ -37,6 +42,10 @@ import EmployeesModule from './components/EmployeesModule';
 import BenefitsModule from './components/BenefitsModule';
 import PayslipsModule from './components/PayslipsModule';
 import HolidayCalendarModule from './components/HolidayCalendarModule';
+import AuditLogModule from './components/AuditLogModule';
+import Login from './components/Login';
+import Signup from './components/Signup';
+import './auth.css';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('payroll'); // 'summary', 'payroll', 'sites', 'employees', 'benefits', 'holidays', 'payslips'
@@ -50,6 +59,10 @@ export default function App() {
   const [focusedPayslipRecordId, setFocusedPayslipRecordId] = useState(null);
   const [backendConnected, setBackendConnected] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userRole, setUserRole] = useState('HR_STAFF');
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [showSignup, setShowSignup] = useState(false);
 
   const loadData = async () => {
     setLoading(true);
@@ -67,9 +80,25 @@ export default function App() {
     setLoading(false);
   };
 
-  useEffect(() => {
-    loadData();
-  }, []);
+ useEffect(() => {
+  const initializeApp = async () => {
+    try {
+      const auth = await checkAuthApi();
+
+      if (auth.authenticated) {
+        setUserRole(auth.role || 'HR_STAFF');
+        setIsAuthenticated(true);
+        await loadData();
+}
+    } catch (error) {
+      console.error('Authentication check failed:', error);
+    } finally {
+      setCheckingAuth(false);
+    }
+  };
+
+  initializeApp();
+}, []);
 
   const activePeriod = periods[0] || {
     id: 1,
@@ -85,7 +114,42 @@ export default function App() {
   );
 
   // Handlers
-  const handleCreateSite = async (payload) => {
+  // Handlers
+
+const handleLogin = async (username, password) => {
+  const auth = await loginApi(username, password);
+
+  setUserRole(auth.role || 'HR_STAFF');
+  setIsAuthenticated(true);
+
+  await loadData();
+};
+
+
+const handleSignup = async (username, password, confirmPassword, role) => {
+  await signupApi(username, password, confirmPassword, role);
+
+  setIsAuthenticated(false);
+  setShowSignup(false);
+};
+
+
+const handleLogout = async () => {
+  try {
+    await logoutApi();
+    setIsAuthenticated(false);
+    setUserRole('HR_STAFF');
+    setShowSignup(false);
+    setSites([]);
+    setEmployees([]);
+    setPeriods([]);
+    setRecords([]);
+  } catch (error) {
+    alert(error.message || 'Logout failed.');
+  }
+};
+
+const handleCreateSite = async (payload) => {
     const created = await createSiteApi(payload);
     setSites((prev) => [...prev, created]);
   };
@@ -182,8 +246,32 @@ export default function App() {
     return res;
   };
 
+  if (checkingAuth) {
   return (
-    <div className="app-shell">
+    <div className="auth-container">
+      <div className="auth-card">
+        Checking your account...
+      </div>
+    </div>
+  );
+}
+
+if (!isAuthenticated) {
+  return showSignup ? (
+    <Signup
+      onSignup={handleSignup}
+      onShowLogin={() => setShowSignup(false)}
+    />
+  ) : (
+    <Login
+      onLogin={handleLogin}
+      onShowSignup={() => setShowSignup(true)}
+    />
+  );
+}
+
+return (
+  <div className="app-shell">
       {/* Sidebar Navigation */}
       <aside className="sidebar">
         <div className="brand-box">
@@ -235,6 +323,23 @@ export default function App() {
         </div>
 
         <div className="nav-section-label">Management & HR</div>
+
+        {userRole === 'ADMIN' && (
+  <>
+    <div className="nav-section-label">Administration</div>
+    <div className="nav-list">
+      <button
+        className={`nav-btn ${activeTab === 'audit' ? 'active' : ''}`}
+        onClick={() => setActiveTab('audit')}
+      >
+        <span className="nav-btn-left">
+          <ClipboardList size={17} />
+          <span>Audit Log</span>
+        </span>
+      </button>
+    </div>
+  </>
+)}
         <div className="nav-list">
           <button
             className={`nav-btn ${activeTab === 'sites' ? 'active' : ''}`}
@@ -335,16 +440,23 @@ export default function App() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <button
-              className="btn btn-outline btn-sm"
-              title="Reset to exact uploaded Excel data"
-              onClick={handleResetDemo}
-            >
-              <RotateCcw size={13} /> Reset Excel Data
-            </button>
-          </div>
-        </header>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+  <button
+    className="btn btn-outline btn-sm"
+    title="Reset to exact uploaded Excel data"
+    onClick={handleResetDemo}
+  >
+    <RotateCcw size={13} /> Reset Excel Data
+  </button>
+
+  <button
+    className="btn btn-outline btn-sm"
+    onClick={handleLogout}
+  >
+    Logout
+  </button>
+</div>
+</header>
 
         <main className="content-wrap">
           {loading ? (
@@ -422,14 +534,18 @@ export default function App() {
               )}
 
               {activeTab === 'payslips' && (
-                <PayslipsModule
-                  sites={sites}
-                  records={records}
-                  activePeriod={activePeriod}
-                  focusedRecordId={focusedPayslipRecordId}
-                  onClearFocusedRecord={() => setFocusedPayslipRecordId(null)}
-                />
-              )}
+  <PayslipsModule
+    sites={sites}
+    records={records}
+    activePeriod={activePeriod}
+    focusedRecordId={focusedPayslipRecordId}
+    onClearFocusedRecord={() => setFocusedPayslipRecordId(null)}
+  />
+)}
+
+{activeTab === 'audit' && userRole === 'ADMIN' && (
+  <AuditLogModule />
+)}
             </>
           )}
         </main>

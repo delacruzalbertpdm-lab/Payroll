@@ -3,9 +3,17 @@ from decimal import Decimal
 from datetime import datetime
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from .models import Site, BenefitConfig, Employee, PayrollPeriod, PayrollRecord, Holiday
+from .models import (
+    Site, BenefitConfig, Employee, PayrollPeriod,
+    PayrollRecord, Holiday, UserProfile, AuditLog
+)
 from .seed import seed_initial_data
+import json
 
+from django.http import JsonResponse
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.models import User
+from django.views.decorators.csrf import ensure_csrf_cookie, csrf_protect
 
 def to_float(val):
     if val is None:
@@ -21,6 +29,13 @@ def to_dec(val, default='0.00'):
     except Exception:
         return Decimal(default)
 
+def create_audit_log(request, action, details=''):
+    if request.user.is_authenticated:
+        AuditLog.objects.create(
+            user=request.user,
+            action=action,
+            details=details
+        )
 
 def serialize_site(s):
     return {
@@ -183,6 +198,7 @@ def bootstrap_view(request):
     })
 
 
+
 @csrf_exempt
 def sites_view(request, site_id=None):
     if request.method == 'GET':
@@ -197,11 +213,19 @@ def sites_view(request, site_id=None):
             location=data.get('location', '').strip(),
             is_active=data.get('is_active', True),
         )
+
+        create_audit_log(
+            request,
+            'Added Site',
+            f'Added site: {site.code} {site.name}'
+        )
+
         return JsonResponse({'site': serialize_site(site)}, status=201)
 
     if request.method in ('PUT', 'PATCH') and site_id:
         data = json.loads(request.body)
         site = Site.objects.get(pk=site_id)
+
         if 'code' in data:
             site.code = data['code'].strip().upper()
         if 'name' in data:
@@ -212,11 +236,32 @@ def sites_view(request, site_id=None):
             site.location = data['location'].strip()
         if 'is_active' in data:
             site.is_active = bool(data['is_active'])
+
         site.save()
+
+        create_audit_log(
+            request,
+            'Updated Site',
+            f'Updated site: {site.code} {site.name}'
+        )
+
         return JsonResponse({'site': serialize_site(site)})
 
     if request.method == 'DELETE' and site_id:
-        Site.objects.filter(pk=site_id).delete()
+        site = Site.objects.filter(pk=site_id).first()
+
+        if not site:
+            return JsonResponse({'error': 'Site not found'}, status=404)
+
+        site_name = f'{site.code} {site.name}'
+        site.delete()
+
+        create_audit_log(
+            request,
+            'Deleted Site',
+            f'Deleted site: {site_name}'
+        )
+
         return JsonResponse({'deleted': True})
 
     return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -225,11 +270,17 @@ def sites_view(request, site_id=None):
 @csrf_exempt
 def employees_view(request, emp_id=None):
     if request.method == 'GET':
-        return JsonResponse({'employees': [serialize_employee(e) for e in Employee.objects.select_related('site').all()]})
+        return JsonResponse({
+            'employees': [
+                serialize_employee(e)
+                for e in Employee.objects.select_related('site').all()
+            ]
+        })
 
     if request.method == 'POST':
         data = json.loads(request.body)
         site_id = data.get('site_id') or None
+
         emp = Employee.objects.create(
             full_name=data.get('full_name', '').strip(),
             role=data.get('role', 'Site Worker').strip(),
@@ -252,11 +303,13 @@ def employees_view(request, emp_id=None):
             hdmf_cl=to_dec(data.get('hdmf_cl', 0)),
             is_active=bool(data.get('is_active', True)),
         )
-        # Optionally auto-add to active payroll period if requested
+
         if data.get('add_to_active_period') and emp.site_id:
             active_period = PayrollPeriod.objects.first()
+
             if active_period:
                 cfg = BenefitConfig.get_solo()
+
                 PayrollRecord.objects.create(
                     period=active_period,
                     site_id=emp.site_id,
@@ -279,16 +332,26 @@ def employees_view(request, emp_id=None):
                     hdmf_mpl=emp.hdmf_mpl,
                     hdmf_cl=emp.hdmf_cl,
                 )
+
+        create_audit_log(
+            request,
+            'Added Employee',
+            f'Added employee: {emp.full_name}'
+        )
+
         return JsonResponse({'employee': serialize_employee(emp)}, status=201)
 
     if request.method in ('PUT', 'PATCH') and emp_id:
         data = json.loads(request.body)
         emp = Employee.objects.get(pk=emp_id)
+
         for field in ['full_name', 'role', 'payment_method', 'gcash_number']:
             if field in data:
                 setattr(emp, field, str(data[field]).strip())
+
         if 'site_id' in data:
             emp.site_id = data['site_id'] or None
+
         for dec_field in [
             'daily_rate', 'total_office_vale', 'default_office_vale_deduction',
             'sss_salary_loan', 'sss_calamity_loan', 'sss_emergency_loan',
@@ -296,14 +359,36 @@ def employees_view(request, emp_id=None):
         ]:
             if dec_field in data:
                 setattr(emp, dec_field, to_dec(data[dec_field]))
+
         for bool_field in ['has_sss', 'has_phic', 'has_hdmf', 'has_gcash_charge', 'is_active']:
             if bool_field in data:
                 setattr(emp, bool_field, bool(data[bool_field]))
+
         emp.save()
+
+        create_audit_log(
+            request,
+            'Updated Employee',
+            f'Updated employee: {emp.full_name}'
+        )
+
         return JsonResponse({'employee': serialize_employee(emp)})
 
     if request.method == 'DELETE' and emp_id:
-        Employee.objects.filter(pk=emp_id).delete()
+        emp = Employee.objects.filter(pk=emp_id).first()
+
+        if not emp:
+            return JsonResponse({'error': 'Employee not found'}, status=404)
+
+        employee_name = emp.full_name
+        emp.delete()
+
+        create_audit_log(
+            request,
+            'Deleted Employee',
+            f'Deleted employee: {employee_name}'
+        )
+
         return JsonResponse({'deleted': True})
 
     return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -311,44 +396,48 @@ def employees_view(request, emp_id=None):
 
 @csrf_exempt
 def benefits_view(request):
-    cfg = BenefitConfig.get_solo()
     if request.method == 'GET':
-        return JsonResponse({'benefit_config': serialize_benefit_config(cfg)})
+        cfg = BenefitConfig.get_solo()
+        return JsonResponse({
+            'benefit_config': serialize_benefit_config(cfg)
+        })
 
-    if request.method in ('PUT', 'POST', 'PATCH'):
+    if request.method in ('PUT', 'PATCH', 'POST'):
         data = json.loads(request.body)
-        for field in [
-            'sss_contribution_default', 'phic_contribution_default',
-            'hdmf_contribution_default', 'gcash_charge_default',
-            'sss_rate_default', 'abuloy_default',
-            'ot_hourly_multiplier', 'night_diff_multiplier',
-            'rest_day_multiplier', 'rest_day_ot_multiplier',
-            'reg_holiday_multiplier', 'reg_holiday_ot_multiplier',
-            'spec_holiday_multiplier', 'spec_holiday_ot_multiplier',
-        ]:
+        cfg = BenefitConfig.get_solo()
+
+        fields = [
+            'sss_contribution_default',
+            'phic_contribution_default',
+            'hdmf_contribution_default',
+            'gcash_charge_default',
+            'sss_rate_default',
+            'abuloy_default',
+            'ot_hourly_multiplier',
+            'night_diff_multiplier',
+            'rest_day_multiplier',
+            'rest_day_ot_multiplier',
+            'reg_holiday_multiplier',
+            'reg_holiday_ot_multiplier',
+            'spec_holiday_multiplier',
+            'spec_holiday_ot_multiplier',
+        ]
+
+        for field in fields:
             if field in data:
                 setattr(cfg, field, to_dec(data[field]))
+
         cfg.save()
 
-        # If apply_to_open_period is set, update active records for enrolled employees
-        if data.get('apply_to_open_period'):
-            period_id = data.get('period_id')
-            qs = PayrollRecord.objects.select_related('employee')
-            if period_id:
-                qs = qs.filter(period_id=period_id)
-            for rec in qs:
-                emp = rec.employee
-                if emp.has_sss:
-                    rec.sss_contribution = cfg.sss_contribution_default
-                if emp.has_phic:
-                    rec.phic_contribution = cfg.phic_contribution_default
-                if emp.has_hdmf:
-                    rec.hdmf_contribution = cfg.hdmf_contribution_default
-                if rec.payment_method == 'GCASH' and emp.has_gcash_charge and rec.days_worked > 0:
-                    rec.gcash_charge = cfg.gcash_charge_default
-                rec.save()
+        create_audit_log(
+            request,
+            'Updated Benefits',
+            'Updated benefit configuration.'
+        )
 
-        return JsonResponse({'benefit_config': serialize_benefit_config(cfg)})
+        return JsonResponse({
+            'benefit_config': serialize_benefit_config(cfg)
+        })
 
     return JsonResponse({'error': 'Method not allowed'}, status=405)
 
@@ -406,6 +495,12 @@ def periods_view(request, period_id=None):
                     hdmf_cl=emp.hdmf_cl,
                     abuloy=cfg.abuloy_default,
                 )
+
+                create_audit_log(
+            request,
+            'Added Payroll Period',
+            f'Created payroll period: {period.period_covered}'
+        )
 
         return JsonResponse({'period': serialize_period(period)}, status=201)
 
@@ -575,7 +670,14 @@ def records_view(request, record_id=None):
             others=to_dec(data.get('others', 0)),
             is_signed=bool(data.get('is_signed', True)),
             remarks=data.get('remarks', '').strip(),
+                )
+
+        create_audit_log(
+            request,
+            'Added Payroll Record',
+            f'Added payroll record for {emp.full_name} - Period ID: {rec.period_id}'
         )
+
         return JsonResponse({'record': serialize_record(rec)}, status=201)
 
     if request.method in ('PUT', 'PATCH') and record_id:
@@ -607,13 +709,38 @@ def records_view(request, record_id=None):
             rec.remarks = str(data['remarks']).strip()
 
         rec.save()
+
+        create_audit_log(
+            request,
+            'Updated Payroll Record',
+            f'Updated payroll record for {rec.employee.full_name} - Period ID: {rec.period_id}'
+        )
+
         return JsonResponse({'record': serialize_record(rec)})
 
+    
     if request.method == 'DELETE' and record_id:
-        PayrollRecord.objects.filter(pk=record_id).delete()
+        rec = PayrollRecord.objects.select_related('employee').filter(pk=record_id).first()
+
+        if not rec:
+            return JsonResponse({'error': 'Payroll record not found'}, status=404)
+
+        employee_name = rec.employee.full_name
+        period_id = rec.period_id
+
+        rec.delete()
+
+        create_audit_log(
+            request,
+            'Deleted Payroll Record',
+            f'Deleted payroll record for {employee_name} - Period ID: {period_id}'
+        )
+
         return JsonResponse({'deleted': True})
 
+
     return JsonResponse({'error': 'Method not allowed'}, status=405)
+
 
 
 
@@ -635,7 +762,8 @@ def holidays_view(request, holiday_id=None):
     if request.method == 'POST':
         data = json.loads(request.body)
         d = datetime.strptime(data['date'], '%Y-%m-%d').date()
-        holiday, _ = Holiday.objects.update_or_create(
+
+        holiday, created = Holiday.objects.update_or_create(
             date=d,
             defaults={
                 'name': data.get('name', 'Holiday').strip(),
@@ -643,6 +771,15 @@ def holidays_view(request, holiday_id=None):
                 'auto_apply': bool(data.get('auto_apply', True)),
             }
         )
+
+        action = 'Added Holiday' if created else 'Updated Holiday'
+
+        create_audit_log(
+            request,
+            action,
+            f'{action}: {holiday.name} - {holiday.date}'
+        )
+
         return JsonResponse({
             'holiday': {
                 'id': holiday.id,
@@ -654,10 +791,23 @@ def holidays_view(request, holiday_id=None):
         }, status=201)
 
     if request.method == 'DELETE' and holiday_id:
-        Holiday.objects.filter(pk=holiday_id).delete()
+        holiday = Holiday.objects.filter(pk=holiday_id).first()
+
+        if holiday:
+            holiday_name = holiday.name
+            holiday_date = holiday.date
+            holiday.delete()
+
+            create_audit_log(
+                request,
+                'Deleted Holiday',
+                f'Deleted holiday: {holiday_name} - {holiday_date}'
+            )
+
         return JsonResponse({'deleted': True})
 
     return JsonResponse({'error': 'Method not allowed'}, status=405)
+
 
 
 @csrf_exempt
@@ -699,3 +849,200 @@ def apply_holidays_view(request, period_id):
         'paid_count': paid_count,
         'records': updated,
     })
+
+@ensure_csrf_cookie
+def auth_csrf_view(request):
+    return JsonResponse({'success': True})
+
+
+
+
+@csrf_protect
+def signup_view(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+
+        username = data.get('username', '').strip()
+        password = data.get('password', '')
+        confirm_password = data.get('confirm_password', '')
+        role = data.get('role', 'HR_STAFF').upper()
+
+        if not username or not password:
+            return JsonResponse({'error': 'All fields are required.'}, status=400)
+
+        if len(password) < 8:
+            return JsonResponse(
+                {'error': 'Password must be at least 8 characters.'},
+                status=400
+            )
+
+        if password != confirm_password:
+            return JsonResponse({'error': 'Passwords do not match.'}, status=400)
+
+        if role not in ['ADMIN', 'HR_STAFF']:
+            return JsonResponse({'error': 'Invalid role.'}, status=400)
+
+        user = User.objects.create_user(
+            username=username,
+            password=password
+        )
+
+        UserProfile.objects.create(
+            user=user,
+            role=role
+        )
+
+        AuditLog.objects.create(
+            user=user,
+            action='Registered User',
+            details=f'New account registered: {username} - Role: {role}'
+        )
+
+        return JsonResponse({
+            'success': True,
+            'username': user.username,
+            'role': role
+        })
+
+    except (json.JSONDecodeError, TypeError):
+        return JsonResponse({'error': 'Invalid request.'}, status=400)
+
+
+
+
+
+@csrf_protect
+def login_view(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+
+        username = data.get('username', '').strip()
+        password = data.get('password', '')
+
+        user = authenticate(
+            request,
+            username=username,
+            password=password
+        )
+
+        if user is None:
+            return JsonResponse(
+                {'error': 'Invalid username or password.'},
+                status=401
+            )
+
+        profile, _ = UserProfile.objects.get_or_create(
+            user=user,
+            defaults={'role': 'HR_STAFF'}
+        )
+
+        login(request, user)
+
+        AuditLog.objects.create(
+            user=user,
+            action='Logged In',
+            details=f'{user.username} logged in.'
+        )
+
+        return JsonResponse({
+            'success': True,
+            'username': user.username,
+            'role': profile.role
+        })
+
+    except (json.JSONDecodeError, TypeError):
+        return JsonResponse({'error': 'Invalid request.'}, status=400)
+
+
+
+def auth_status_view(request):
+    if request.user.is_authenticated:
+        profile, _ = UserProfile.objects.get_or_create(
+            user=request.user,
+            defaults={'role': 'HR_STAFF'}
+        )
+
+        return JsonResponse({
+            'authenticated': True,
+            'username': request.user.username,
+            'role': profile.role
+        })
+
+    return JsonResponse({'authenticated': False}, status=401)
+
+
+
+@csrf_protect
+def logout_view(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    if request.user.is_authenticated:
+        username = request.user.username
+
+        create_audit_log(
+            request,
+            'Logged Out',
+            f'{username} logged out.'
+        )
+
+    logout(request)
+
+    return JsonResponse({'success': True})
+
+
+
+@csrf_protect
+def audit_log_view(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Authentication required.'}, status=401)
+
+    profile, _ = UserProfile.objects.get_or_create(
+        user=request.user,
+        defaults={'role': 'HR_STAFF'}
+    )
+
+    if request.method == 'GET':
+        if profile.role != 'ADMIN':
+            return JsonResponse({'error': 'Admin access only.'}, status=403)
+
+        logs = AuditLog.objects.select_related('user').all()
+
+        return JsonResponse({
+            'logs': [
+                {
+                    'id': log.id,
+                    'username': log.user.username if log.user else 'Unknown',
+                    'action': log.action,
+                    'details': log.details,
+                    'created_at': log.created_at.isoformat(),
+                }
+                for log in logs
+            ]
+        })
+
+    if request.method == 'POST':
+        data = json.loads(request.body)
+
+        action = data.get('action', '').strip()
+        details = data.get('details', '').strip()
+
+        if not action:
+            return JsonResponse({'error': 'Action is required.'}, status=400)
+
+        AuditLog.objects.create(
+            user=request.user,
+            action=action[:100],
+            details=details
+        )
+
+        return JsonResponse({'success': True}, status=201)
+
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
+

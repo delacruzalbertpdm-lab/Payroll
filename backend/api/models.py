@@ -1,5 +1,6 @@
 from decimal import Decimal
 from django.db import models
+from django.contrib.auth.models import User
 
 
 class Site(models.Model):
@@ -274,3 +275,44 @@ class PayrollRecord(models.Model):
         self.compute_totals()
         super().save(*args, **kwargs)
 
+
+from django.contrib.auth.models import User
+
+
+class UserProfile(models.Model):
+    ROLE_CHOICES = [
+        ('ADMIN', 'Admin'),
+        ('HR_STAFF', 'HR Staff'),
+    ]
+
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name='profile'
+    )
+    role = models.CharField(
+        max_length=20,
+        choices=ROLE_CHOICES,
+        default='HR_STAFF'
+    )
+
+    def __str__(self):
+        return f"{self.user.username} - {self.role}"
+
+
+class AuditLog(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+    action = models.CharField(max_length=100)
+    details = models.TextField(blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.action} - {self.created_at}"

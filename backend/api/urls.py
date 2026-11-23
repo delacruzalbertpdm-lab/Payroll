@@ -16,5 +16,11 @@ urlpatterns = [
     path('holidays/', views.holidays_view, name='holidays'),
     path('holidays/<int:holiday_id>/', views.holidays_view, name='holiday-detail'),
     path('periods/<int:period_id>/apply-holidays/', views.apply_holidays_view, name='apply-holidays'),
+    path('auth/csrf/', views.auth_csrf_view, name='auth-csrf'),
+    path('auth/signup/', views.signup_view, name='signup'),
+    path('auth/login/', views.login_view, name='login'),
+    path('auth/status/', views.auth_status_view, name='auth-status'),
+    path('auth/logout/', views.logout_view, name='logout'),
+    path('audit-logs/', views.audit_log_view, name='audit-logs'),
 ]
 

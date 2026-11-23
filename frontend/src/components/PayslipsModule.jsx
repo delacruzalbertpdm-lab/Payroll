@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { createAuditLogApi } from '../services/api';
 import {
   Printer,
   Search,
@@ -38,9 +39,24 @@ export default function PayslipsModule({
       }
       return true;
     });
+  
   }, [records, siteFilter, methodFilter, search, focusedRecordId]);
 
+  const handlePrint = async () => {
+    try {
+      await createAuditLogApi(
+        'Printed Payslip',
+        `Printed ${filteredRecords.length} payslip(s) for period: ${activePeriod?.period_covered || 'N/A'}`
+      );
+    } catch (error) {
+      console.error('Failed to record payslip print audit:', error);
+    }
+
+    window.print();
+  };
+
   return (
+
     <div>
       {/* Controls Bar */}
       <div
@@ -71,7 +87,7 @@ export default function PayslipsModule({
               Show All Payslips ({records.length})
             </button>
           )}
-          <button className="btn btn-primary" onClick={() => window.print()}>
+          <button className="btn btn-primary" onClick={handlePrint}>
             <Printer size={16} /> Print {filteredRecords.length} Payslip(s)
           </button>
         </div>
