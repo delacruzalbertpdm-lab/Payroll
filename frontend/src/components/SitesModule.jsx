@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import PaginationBar from './PaginationBar';
 import {
   Building2,
   Plus,
@@ -26,6 +27,12 @@ export default function SitesModule({
 }) {
   const [showModal, setShowModal] = useState(false);
   const [editingSite, setEditingSite] = useState(null);
+  const [pageSize, setPageSize] = useState(6);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [sites.length, pageSize]);
   const [form, setForm] = useState({
     code: '',
     name: '',
@@ -95,7 +102,10 @@ export default function SitesModule({
           gap: 16,
         }}
       >
-        {sites.map((site) => {
+        {(pageSize === 'ALL'
+          ? sites
+          : sites.slice((currentPage - 1) * Number(pageSize), currentPage * Number(pageSize))
+        ).map((site) => {
           const siteRecs = records.filter((r) => Number(r.site_id) === Number(site.id));
           const gcashCount = siteRecs.filter((r) => r.payment_method === 'GCASH').length;
           const cashCount = siteRecs.filter((r) => r.payment_method === 'CASH').length;
@@ -222,6 +232,18 @@ export default function SitesModule({
             </div>
           );
         })}
+      </div>
+
+      <div className="card" style={{ marginTop: 16 }}>
+        <PaginationBar
+          totalItems={sites.length}
+          currentPage={currentPage}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(sz) => setPageSize(sz)}
+          pageSizeOptions={[6, 12, 24]}
+          itemLabel="sites"
+        />
       </div>
 
       {showModal && (

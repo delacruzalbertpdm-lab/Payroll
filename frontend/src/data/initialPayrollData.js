@@ -39,14 +39,67 @@ export const INITIAL_PERIODS = [
 ];
 
 export const INITIAL_HOLIDAYS = [
-  { id: 1, date: '2026-10-31', name: "All Saints' Eve", holiday_type: 'SPECIAL', auto_apply: true },
-  { id: 2, date: '2026-11-01', name: "All Saints' Day", holiday_type: 'SPECIAL', auto_apply: true },
-  { id: 3, date: '2026-11-02', name: "All Souls' Day", holiday_type: 'SPECIAL', auto_apply: true },
-  { id: 4, date: '2026-11-30', name: 'Bonifacio Day', holiday_type: 'REGULAR', auto_apply: true },
-  { id: 5, date: '2026-12-08', name: 'Feast of the Immaculate Conception', holiday_type: 'SPECIAL', auto_apply: true },
-  { id: 6, date: '2026-12-25', name: 'Christmas Day', holiday_type: 'REGULAR', auto_apply: true },
-  { id: 7, date: '2026-12-30', name: 'Rizal Day', holiday_type: 'REGULAR', auto_apply: true },
+  { id: 1, date: '2026-01-01', name: "New Year's Day", holiday_type: 'REGULAR', auto_apply: true, is_recurring: true },
+  { id: 2, date: '2026-02-17', name: 'Chinese New Year', holiday_type: 'SPECIAL', auto_apply: true, is_recurring: true },
+  { id: 3, date: '2026-02-25', name: 'EDSA Anniversary', holiday_type: 'SPECIAL_WORKING', auto_apply: false, is_recurring: true },
+  { id: 4, date: '2026-04-02', name: 'Maundy Thursday', holiday_type: 'REGULAR', auto_apply: true, is_recurring: true },
+  { id: 5, date: '2026-04-03', name: 'Good Friday', holiday_type: 'REGULAR', auto_apply: true, is_recurring: true },
+  { id: 6, date: '2026-04-04', name: 'Black Saturday', holiday_type: 'SPECIAL', auto_apply: true, is_recurring: true },
+  { id: 7, date: '2026-04-09', name: 'Araw ng Kagitingan', holiday_type: 'REGULAR', auto_apply: true, is_recurring: true },
+  { id: 8, date: '2026-05-01', name: 'Labor Day', holiday_type: 'REGULAR', auto_apply: true, is_recurring: true },
+  { id: 9, date: '2026-06-12', name: 'Independence Day', holiday_type: 'REGULAR', auto_apply: true, is_recurring: true },
+  { id: 10, date: '2026-08-21', name: 'Ninoy Aquino Day', holiday_type: 'SPECIAL', auto_apply: true, is_recurring: true },
+  { id: 11, date: '2026-08-31', name: 'National Heroes Day', holiday_type: 'REGULAR', auto_apply: true, is_recurring: true },
+  { id: 12, date: '2026-11-01', name: "All Saints' Day", holiday_type: 'SPECIAL', auto_apply: true, is_recurring: true },
+  { id: 13, date: '2026-11-02', name: "All Souls' Day", holiday_type: 'SPECIAL', auto_apply: true, is_recurring: true },
+  { id: 14, date: '2026-11-30', name: 'Bonifacio Day', holiday_type: 'REGULAR', auto_apply: true, is_recurring: true },
+  { id: 15, date: '2026-12-08', name: 'Feast of the Immaculate Conception', holiday_type: 'SPECIAL', auto_apply: true, is_recurring: true },
+  { id: 16, date: '2026-12-24', name: 'Christmas Eve', holiday_type: 'SPECIAL', auto_apply: true, is_recurring: true },
+  { id: 17, date: '2026-12-25', name: 'Christmas Day', holiday_type: 'REGULAR', auto_apply: true, is_recurring: true },
+  { id: 18, date: '2026-12-30', name: 'Rizal Day', holiday_type: 'REGULAR', auto_apply: true, is_recurring: true },
+  { id: 19, date: '2026-12-31', name: 'Last Day of the Year', holiday_type: 'SPECIAL', auto_apply: true, is_recurring: true },
 ];
+
+export function expandHolidaysForYear(holidays, year) {
+  const byDate = {};
+  const list = holidays && holidays.length ? holidays : INITIAL_HOLIDAYS;
+
+  // Project recurring holidays onto the target year first
+  list.forEach((h) => {
+    if (h.is_recurring) {
+      const mmdd = String(h.date || '').slice(5);
+      if (mmdd.length === 5) {
+        const projected = `${year}-${mmdd}`;
+        byDate[projected] = { ...h, date: projected };
+      }
+    }
+  });
+
+  // Exact-date entries/edits for that specific year override recurring defaults
+  list.forEach((h) => {
+    if (String(h.date || '').startsWith(`${year}-`)) {
+      byDate[h.date] = { ...h };
+    }
+  });
+
+  return Object.values(byDate).sort((a, b) => a.date.localeCompare(b.date));
+}
+
+export function getHolidaysInPeriod(holidays, startDate, endDate) {
+  if (!startDate || !endDate) return [];
+  const startYear = Number(startDate.slice(0, 4));
+  const endYear = Number(endDate.slice(0, 4));
+  const years = new Set([startYear, endYear]);
+  const combined = [];
+  years.forEach((yr) => {
+    expandHolidaysForYear(holidays, yr).forEach((h) => {
+      if (h.date >= startDate && h.date <= endDate) {
+        combined.push(h);
+      }
+    });
+  });
+  return combined.sort((a, b) => a.date.localeCompare(b.date));
+}
 
 // [siteId, payMethod, fullName, role, dailyRate, days, otHrs, gcashCharge, totVale, valeDed, sssC, hdmfMpl, phicC, siteVale, corpo, others, remarks]
 const RAW_ROWS = [
@@ -226,7 +279,8 @@ export function computeRecordFormulas(rec, cfg = INITIAL_BENEFIT_CONFIG) {
   const ot_hours = num(rec.ot_hours);
   const ot_amount = round2(hourly * num(cfg.ot_hourly_multiplier || 1.0) * ot_hours);
 
-  const night_diff_hours = num(rec.night_diff_hours);
+  const is_night_shift = Boolean(rec.is_night_shift);
+  const night_diff_hours = is_night_shift ? round2(days_worked * 8.0) : num(rec.night_diff_hours);
   const night_diff_amount = round2(hourly * num(cfg.night_diff_multiplier || 0.1) * night_diff_hours);
 
   const rest_day_days = num(rec.rest_day_days);
@@ -314,6 +368,7 @@ export function computeRecordFormulas(rec, cfg = INITIAL_BENEFIT_CONFIG) {
     regular_amount,
     ot_hours,
     ot_amount,
+    is_night_shift,
     night_diff_hours,
     night_diff_amount,
     rest_day_days,

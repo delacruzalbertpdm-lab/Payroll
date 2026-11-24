@@ -126,6 +126,7 @@ def serialize_record(r):
         'regular_amount': to_float(r.regular_amount),
         'ot_hours': to_float(r.ot_hours),
         'ot_amount': to_float(r.ot_amount),
+        'is_night_shift': r.is_night_shift,
         'night_diff_hours': to_float(r.night_diff_hours),
         'night_diff_amount': to_float(r.night_diff_amount),
         'rest_day_days': to_float(r.rest_day_days),
@@ -225,24 +226,41 @@ def sites_view(request, site_id=None):
     if request.method in ('PUT', 'PATCH') and site_id:
         data = json.loads(request.body)
         site = Site.objects.get(pk=site_id)
+        changes = []
 
         if 'code' in data:
-            site.code = data['code'].strip().upper()
+            new_val = data['code'].strip().upper()
+            if new_val != site.code:
+                changes.append(f"code: {site.code} -> {new_val}")
+            site.code = new_val
         if 'name' in data:
-            site.name = data['name'].strip().upper()
+            new_val = data['name'].strip().upper()
+            if new_val != site.name:
+                changes.append(f"name: {site.name} -> {new_val}")
+            site.name = new_val
         if 'project_in_charge' in data:
-            site.project_in_charge = data['project_in_charge'].strip()
+            new_val = data['project_in_charge'].strip()
+            if new_val != site.project_in_charge:
+                changes.append(f"in-charge: {site.project_in_charge} -> {new_val}")
+            site.project_in_charge = new_val
         if 'location' in data:
-            site.location = data['location'].strip()
+            new_val = data['location'].strip()
+            if new_val != site.location:
+                changes.append(f"location: {site.location} -> {new_val}")
+            site.location = new_val
         if 'is_active' in data:
-            site.is_active = bool(data['is_active'])
+            new_val = bool(data['is_active'])
+            if new_val != site.is_active:
+                changes.append(f"active: {site.is_active} -> {new_val}")
+            site.is_active = new_val
 
         site.save()
 
+        change_summary = f" ({', '.join(changes)})" if changes else ""
         create_audit_log(
             request,
             'Updated Site',
-            f'Updated site: {site.code} {site.name}'
+            f'Site [{site.code} {site.name}]{change_summary}'
         )
 
         return JsonResponse({'site': serialize_site(site)})
@@ -695,25 +713,38 @@ def records_view(request, record_id=None):
             'hdmf_mpl', 'hdmf_cl', 'phic_contribution', 'abuloy',
             'site_vale', 'corpo', 'others'
         ]
+        changes = []
         for f in dec_fields:
             if f in data:
-                setattr(rec, f, to_dec(data[f]))
+                old_val = getattr(rec, f)
+                new_val = to_dec(data[f])
+                if old_val != new_val:
+                    changes.append(f"{f}: {old_val} -> {new_val}")
+                setattr(rec, f, new_val)
 
-        if 'payment_method' in data:
+        if 'payment_method' in data and data['payment_method'] != rec.payment_method:
+            changes.append(f"payment: {rec.payment_method} -> {data['payment_method']}")
             rec.payment_method = data['payment_method']
-        if 'site_id' in data:
+        if 'site_id' in data and data['site_id'] != rec.site_id:
+            changes.append(f"site_id: {rec.site_id} -> {data['site_id']}")
             rec.site_id = data['site_id']
-        if 'is_signed' in data:
+        if 'is_night_shift' in data and bool(data['is_night_shift']) != rec.is_night_shift:
+            changes.append(f"night_shift: {rec.is_night_shift} -> {bool(data['is_night_shift'])}")
+            rec.is_night_shift = bool(data['is_night_shift'])
+        if 'is_signed' in data and bool(data['is_signed']) != rec.is_signed:
+            changes.append(f"signed: {rec.is_signed} -> {bool(data['is_signed'])}")
             rec.is_signed = bool(data['is_signed'])
-        if 'remarks' in data:
+        if 'remarks' in data and str(data['remarks']).strip() != rec.remarks:
+            changes.append(f"remarks: '{rec.remarks}' -> '{str(data['remarks']).strip()}'")
             rec.remarks = str(data['remarks']).strip()
 
         rec.save()
 
+        change_summary = f" | Changes: {', '.join(changes)}" if changes else ""
         create_audit_log(
             request,
             'Updated Payroll Record',
-            f'Updated payroll record for {rec.employee.full_name} - Period ID: {rec.period_id}'
+            f'Site [{rec.site.code} {rec.site.name}] - {rec.employee.full_name}{change_summary} (Net: ₱{rec.net_pay})'
         )
 
         return JsonResponse({'record': serialize_record(rec)})
@@ -1012,13 +1043,14 @@ def audit_log_view(request):
         if profile.role != 'ADMIN':
             return JsonResponse({'error': 'Admin access only.'}, status=403)
 
-        logs = AuditLog.objects.select_related('user').all()
+        logs = AuditLog.objects.select_related('user', 'user__profile').all()
 
         return JsonResponse({
             'logs': [
                 {
                     'id': log.id,
                     'username': log.user.username if log.user else 'Unknown',
+                    'role': log.user.profile.role if (log.user and hasattr(log.user, 'profile')) else 'HR_STAFF',
                     'action': log.action,
                     'details': log.details,
                     'created_at': log.created_at.isoformat(),

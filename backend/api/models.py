@@ -153,6 +153,7 @@ class PayrollRecord(models.Model):
     # Overtime & Night Diff
     ot_hours = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal('0.00'))
     ot_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
+    is_night_shift = models.BooleanField(default=False)
     night_diff_hours = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal('0.00'))
     night_diff_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
 
@@ -222,6 +223,8 @@ class PayrollRecord(models.Model):
 
         self.regular_amount = (d_rate * Decimal(str(self.days_worked or 0))).quantize(Decimal('0.01'))
         self.ot_amount = (hourly_rate * cfg.ot_hourly_multiplier * Decimal(str(self.ot_hours or 0))).quantize(Decimal('0.01'))
+        if self.is_night_shift:
+            self.night_diff_hours = (Decimal(str(self.days_worked or 0)) * Decimal('8')).quantize(Decimal('0.01'))
         self.night_diff_amount = (hourly_rate * cfg.night_diff_multiplier * Decimal(str(self.night_diff_hours or 0))).quantize(Decimal('0.01'))
         self.rest_day_amount = (d_rate * cfg.rest_day_multiplier * Decimal(str(self.rest_day_days or 0))).quantize(Decimal('0.01'))
         self.rest_day_ot_amount = (hourly_rate * cfg.rest_day_ot_multiplier * Decimal(str(self.rest_day_ot_hours or 0))).quantize(Decimal('0.01'))

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import PaginationBar from './PaginationBar';
 import {
   ShieldCheck,
   RefreshCw,
@@ -20,6 +21,12 @@ export default function BenefitsModule({
 }) {
   const [form, setForm] = useState({ ...benefitConfig });
   const [savedBanner, setSavedBanner] = useState('');
+  const [pageSize, setPageSize] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [employees.length, pageSize]);
 
   const handleSave = async (applyToCurrentPayroll = false) => {
     await onSaveBenefitsConfig({
@@ -292,10 +299,16 @@ export default function BenefitsModule({
               </tr>
             </thead>
             <tbody>
-              {employees.map((emp, idx) => (
+              {(pageSize === 'ALL'
+                ? employees
+                : employees.slice(
+                    (currentPage - 1) * Number(pageSize),
+                    currentPage * Number(pageSize)
+                  )
+              ).map((emp, idx) => (
                 <tr key={emp.id}>
                   <td className="mono" style={{ textAlign: 'center' }}>
-                    {idx + 1}
+                    {(pageSize === 'ALL' ? 0 : (currentPage - 1) * Number(pageSize)) + idx + 1}
                   </td>
                   <td style={{ fontWeight: 700 }}>{emp.full_name}</td>
                   <td>{emp.site_name}</td>
@@ -365,6 +378,15 @@ export default function BenefitsModule({
             </tbody>
           </table>
         </div>
+        <PaginationBar
+          totalItems={employees.length}
+          currentPage={currentPage}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(sz) => setPageSize(sz)}
+          pageSizeOptions={[10, 20, 50, 100]}
+          itemLabel="workers"
+        />
       </div>
     </div>
   );

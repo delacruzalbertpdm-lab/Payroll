@@ -3,10 +3,11 @@ import {
   computeRecordFormulas,
   computeFinanceSummary,
   INITIAL_HOLIDAYS,
+  getHolidaysInPeriod,
 } from '../data/initialPayrollData';
 
 const STORAGE_KEY = 'buildcore_construction_payroll_v1';
-const API_BASE = 'http://localhost:8000/api';
+const API_BASE = '/api';
 
 function loadLocalStore() {
   try {
@@ -14,7 +15,7 @@ function loadLocalStore() {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed && Array.isArray(parsed.sites) && Array.isArray(parsed.records)) {
-        if (!Array.isArray(parsed.holidays)) {
+        if (!Array.isArray(parsed.holidays) || parsed.holidays.length < 10) {
           parsed.holidays = [...INITIAL_HOLIDAYS];
         }
         return parsed;
@@ -512,13 +513,11 @@ export async function applyPeriodHolidaysApi(periodId) {
     };
   }
 
-  const start = period?.start_date || '';
-  const end = period?.end_date || '';
-  const activeHolidays = (store.holidays || []).filter((h) => {
-    if (!h.auto_apply) return false;
-    if (start && end) return h.date >= start && h.date <= end;
-    return true;
-  });
+  const start = period?.start_date || '2026-10-30';
+  const end = period?.end_date || '2026-11-05';
+  const activeHolidays = getHolidaysInPeriod(store.holidays || INITIAL_HOLIDAYS, start, end).filter(
+    (h) => h.auto_apply !== false
+  );
 
   const reg_count = activeHolidays.filter((h) => h.holiday_type === 'REGULAR').length;
   const spec_count = activeHolidays.filter((h) => h.holiday_type === 'SPECIAL').length;
@@ -548,7 +547,7 @@ export async function applyPeriodHolidaysApi(periodId) {
   };
 }
 
-const AUTH_API = 'http://localhost:8000/api';
+const AUTH_API = '/api';
 
 async function getCsrfToken() {
   await fetch(`${AUTH_API}/auth/csrf/`, {
@@ -619,14 +618,11 @@ export async function logoutApi() {
 
 
 export async function fetchAuditLogsApi() {
-  const csrfToken = await getCsrfToken();
-
   const response = await fetch(`${API_BASE}/audit-logs/`, {
     method: 'GET',
     credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
-      'X-CSRFToken': csrfToken,
     },
   });
 

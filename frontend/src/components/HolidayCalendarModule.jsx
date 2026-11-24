@@ -1,4 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import PaginationBar from './PaginationBar';
+import { expandHolidaysForYear, getHolidaysInPeriod } from '../data/initialPayrollData';
 import {
   Calendar as CalendarIcon,
   ChevronLeft,
@@ -31,6 +33,13 @@ const TYPE_META = {
     bg: '#dcfce7',
     border: '#86efac',
     color: '#15803d',
+  },
+  SPECIAL_WORKING: {
+    label: 'Special Working Day (Normal 100%)',
+    short: 'Special Working',
+    bg: '#e0f2fe',
+    border: '#7dd3fc',
+    color: '#0369a1',
   },
 };
 
@@ -67,19 +76,30 @@ export default function HolidayCalendarModule({
     auto_apply: true,
   });
   const [banner, setBanner] = useState('');
+  const [pageSize, setPageSize] = useState(5);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [(holidays || []).length, pageSize]);
+
+  const yearHolidays = useMemo(
+    () => expandHolidaysForYear(holidays, viewYear),
+    [holidays, viewYear]
+  );
 
   const holidayByDate = useMemo(() => {
     const map = {};
-    (holidays || []).forEach((h) => {
+    yearHolidays.forEach((h) => {
       map[h.date] = h;
     });
     return map;
-  }, [holidays]);
+  }, [yearHolidays]);
 
   const periodHolidays = useMemo(() => {
     const start = activePeriod?.start_date || '2026-10-30';
     const end = activePeriod?.end_date || '2026-11-05';
-    return (holidays || []).filter((h) => h.date >= start && h.date <= end);
+    return getHolidaysInPeriod(holidays, start, end);
   }, [holidays, activePeriod]);
 
   const calendarDays = useMemo(() => {
@@ -246,8 +266,22 @@ export default function HolidayCalendarModule({
             >
               <ChevronLeft size={16} />
             </button>
-            <div style={{ fontWeight: 800, fontSize: 15 }}>
-              {MONTH_NAMES[viewMonth]} {viewYear}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontWeight: 800, fontSize: 15 }}>
+                {MONTH_NAMES[viewMonth]}
+              </span>
+              <select
+                className="select"
+                style={{ padding: '3px 8px', fontSize: 13, fontWeight: 700, background: '#1e293b', color: '#fff', borderColor: '#334155' }}
+                value={viewYear}
+                onChange={(e) => setViewYear(Number(e.target.value))}
+              >
+                {[2024, 2025, 2026, 2027, 2028, 2029, 2030].map((yr) => (
+                  <option key={yr} value={yr}>
+                    {yr}
+                  </option>
+                ))}
+              </select>
             </div>
             <button
               className="btn btn-sm"
@@ -433,7 +467,7 @@ export default function HolidayCalendarModule({
           <div className="card" style={{ marginBottom: 0 }}>
             <div className="card-header">
               <div className="card-title" style={{ fontSize: 13.5 }}>
-                ALL SCHEDULED HOLIDAYS ({(holidays || []).length})
+                {viewYear} HOLIDAYS ({yearHolidays.length} Fixed + Custom)
               </div>
             </div>
             <div style={{ maxHeight: 260, overflowY: 'auto' }}>
@@ -447,7 +481,13 @@ export default function HolidayCalendarModule({
                   </tr>
                 </thead>
                 <tbody>
-                  {(holidays || []).map((h) => {
+                  {(pageSize === 'ALL'
+                    ? yearHolidays
+                    : yearHolidays.slice(
+                        (currentPage - 1) * Number(pageSize),
+                        currentPage * Number(pageSize)
+                      )
+                  ).map((h) => {
                     const meta = TYPE_META[h.holiday_type] || TYPE_META.REGULAR;
                     return (
                       <tr key={h.id}>
@@ -477,6 +517,15 @@ export default function HolidayCalendarModule({
                 </tbody>
               </table>
             </div>
+            <PaginationBar
+              totalItems={yearHolidays.length}
+              currentPage={currentPage}
+              pageSize={pageSize}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={(sz) => setPageSize(sz)}
+              pageSizeOptions={[5, 10, 20]}
+              itemLabel="holidays"
+            />
           </div>
         </div>
       </div>
@@ -534,6 +583,9 @@ export default function HolidayCalendarModule({
                       </option>
                       <option value="SPECIAL">
                         Special Non-Working Holiday (+30% Daily Rate)
+                      </option>
+                      <option value="SPECIAL_WORKING">
+                        Special Working Day (Normal 100% Rate)
                       </option>
                       <option value="PAID_HOLIDAY">
                         Paid Holiday (100% Daily Rate Even Unworked)

@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import PaginationBar from './PaginationBar';
 import {
   UserPlus,
   Search,
@@ -28,6 +29,12 @@ export default function EmployeesModule({
   const [methodFilter, setMethodFilter] = useState('ALL');
   const [showModal, setShowModal] = useState(false);
   const [editingEmp, setEditingEmp] = useState(null);
+  const [pageSize, setPageSize] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, siteFilter, methodFilter, pageSize]);
 
   const emptyForm = {
     full_name: '',
@@ -186,10 +193,16 @@ export default function EmployeesModule({
               </tr>
             </thead>
             <tbody>
-              {filteredEmployees.map((emp, idx) => (
+              {(pageSize === 'ALL'
+                ? filteredEmployees
+                : filteredEmployees.slice(
+                    (currentPage - 1) * Number(pageSize),
+                    currentPage * Number(pageSize)
+                  )
+              ).map((emp, idx) => (
                 <tr key={emp.id}>
                   <td className="mono" style={{ textAlign: 'center', color: '#64748b' }}>
-                    {idx + 1}
+                    {(pageSize === 'ALL' ? 0 : (currentPage - 1) * Number(pageSize)) + idx + 1}
                   </td>
                   <td style={{ fontWeight: 700, color: '#0f172a' }}>{emp.full_name}</td>
                   <td>{emp.role}</td>
@@ -291,6 +304,15 @@ export default function EmployeesModule({
             </tbody>
           </table>
         </div>
+        <PaginationBar
+          totalItems={filteredEmployees.length}
+          currentPage={currentPage}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(sz) => setPageSize(sz)}
+          pageSizeOptions={[10, 20, 50, 100]}
+          itemLabel="employees"
+        />
       </div>
 
       {/* Add / Edit Employee Modal */}

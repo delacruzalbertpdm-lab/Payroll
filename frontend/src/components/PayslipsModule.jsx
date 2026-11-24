@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import PaginationBar from './PaginationBar';
 import { createAuditLogApi } from '../services/api';
 import {
   Printer,
@@ -23,6 +24,12 @@ export default function PayslipsModule({
   const [siteFilter, setSiteFilter] = useState('ALL');
   const [methodFilter, setMethodFilter] = useState('ALL');
   const [search, setSearch] = useState('');
+  const [pageSize, setPageSize] = useState(6);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [siteFilter, methodFilter, search, focusedRecordId, pageSize]);
 
   const filteredRecords = useMemo(() => {
     if (focusedRecordId) {
@@ -143,7 +150,13 @@ export default function PayslipsModule({
 
       {/* Payslip Cards Grid */}
       <div className="payslip-grid">
-        {filteredRecords.map((r) => {
+        {(pageSize === 'ALL' || focusedRecordId
+          ? filteredRecords
+          : filteredRecords.slice(
+              (currentPage - 1) * Number(pageSize),
+              currentPage * Number(pageSize)
+            )
+        ).map((r) => {
           const holidayAndRest =
             (r.night_diff_amount || 0) +
             (r.rest_day_amount || 0) +
@@ -451,6 +464,20 @@ export default function PayslipsModule({
           );
         })}
       </div>
+
+      {!focusedRecordId && (
+        <div className="card no-print" style={{ marginTop: 18 }}>
+          <PaginationBar
+            totalItems={filteredRecords.length}
+            currentPage={currentPage}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={(sz) => setPageSize(sz)}
+            pageSizeOptions={[6, 12, 24, 50]}
+            itemLabel="payslips"
+          />
+        </div>
+      )}
     </div>
   );
 }

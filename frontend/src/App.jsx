@@ -9,7 +9,8 @@ import {
   HardHat,
   RotateCcw,
   Calendar,
-    ClipboardList,
+  ClipboardList,
+  Home,
 } from 'lucide-react';
 
 import {
@@ -43,12 +44,13 @@ import BenefitsModule from './components/BenefitsModule';
 import PayslipsModule from './components/PayslipsModule';
 import HolidayCalendarModule from './components/HolidayCalendarModule';
 import AuditLogModule from './components/AuditLogModule';
+import DashboardView from './components/DashboardView';
 import Login from './components/Login';
 import Signup from './components/Signup';
 import './auth.css';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('payroll'); // 'summary', 'payroll', 'sites', 'employees', 'benefits', 'holidays', 'payslips'
+  const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard', 'summary', 'payroll', 'sites', 'employees', 'benefits', 'holidays', 'payslips'
   const [sites, setSites] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [periods, setPeriods] = useState([]);
@@ -287,6 +289,16 @@ return (
         <div className="nav-section-label">Payroll Operations</div>
         <div className="nav-list">
           <button
+            className={`nav-btn ${activeTab === 'dashboard' ? 'active' : ''}`}
+            onClick={() => setActiveTab('dashboard')}
+          >
+            <span className="nav-btn-left">
+              <Home size={17} />
+              <span>Dashboard</span>
+            </span>
+          </button>
+
+          <button
             className={`nav-btn ${activeTab === 'payroll' ? 'active' : ''}`}
             onClick={() => setActiveTab('payroll')}
           >
@@ -465,6 +477,21 @@ return (
             </div>
           ) : (
             <>
+              {activeTab === 'dashboard' && (
+                <DashboardView
+                  sites={sites}
+                  employees={employees}
+                  records={records}
+                  holidays={holidays}
+                  activePeriod={activePeriod}
+                  summary={financeSummary}
+                  userRole={userRole}
+                  onNavigateTab={setActiveTab}
+                  onJumpToSite={handleJumpToSite}
+                  onApplyPeriodHolidays={handleApplyPeriodHolidays}
+                />
+              )}
+
               {activeTab === 'summary' && (
                 <FinanceSummaryView
                   summary={financeSummary}

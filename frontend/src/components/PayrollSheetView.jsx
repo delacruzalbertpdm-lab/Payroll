@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import PaginationBar from './PaginationBar';
 import {
   Plus,
   Printer,
@@ -41,6 +42,14 @@ export default function PayrollSheetView({
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
+  const [pageSize, setPageSize] = useState(10);
+  const [gcashPage, setGcashPage] = useState(1);
+  const [cashPage, setCashPage] = useState(1);
+
+  useEffect(() => {
+    setGcashPage(1);
+    setCashPage(1);
+  }, [selectedSiteId, searchQuery, paymentFilter, pageSize]);
 
   const currentSite = useMemo(
     () => sites.find((s) => Number(s.id) === Number(selectedSiteId)) || sites[0],
@@ -200,13 +209,22 @@ export default function PayrollSheetView({
     document.body.removeChild(link);
   };
 
-  const renderSectionTable = (title, methodBadge, rows) => {
+  const renderSectionTable = (title, methodBadge, rows, page, setPage) => {
     const sum = (field) => rows.reduce((acc, r) => acc + (parseFloat(r[field]) || 0), 0);
     const totalDaysManHours = rows.reduce(
       (acc, r) => acc + (parseFloat(r.days_worked) || 0) * 8.0,
       0
     );
     const activeHeadcount = rows.filter((r) => (parseFloat(r.days_worked) || 0) > 0).length;
+
+    const effectiveSize = pageSize === 'ALL' ? Math.max(rows.length, 1) : Number(pageSize) || 10;
+    const totalPages = Math.max(1, Math.ceil(rows.length / effectiveSize));
+    const safePage = Math.min(Math.max(1, page), totalPages);
+    const pagedRows =
+      pageSize === 'ALL'
+        ? rows
+        : rows.slice((safePage - 1) * effectiveSize, safePage * effectiveSize);
+    const rowOffset = pageSize === 'ALL' ? 0 : (safePage - 1) * effectiveSize;
 
     return (
       <div className="card" style={{ marginBottom: 24 }}>
@@ -379,10 +397,10 @@ export default function PayrollSheetView({
                   </td>
                 </tr>
               ) : (
-                rows.map((r, idx) => (
+                pagedRows.map((r, idx) => (
                   <tr key={r.id}>
                     <td className="mono" style={{ textAlign: 'center', color: '#64748b' }}>
-                      {idx + 1}
+                      {rowOffset + idx + 1}
                     </td>
                     <td style={{ fontWeight: 700, color: '#0f172a' }}>
                       <div>{r.employee_name}</div>
@@ -1003,52 +1021,46 @@ export default function PayrollSheetView({
             )}
           </table>
         </div>
+        <PaginationBar
+          totalItems={rows.length}
+          currentPage={safePage}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={(sz) => setPageSize(sz)}
+          pageSizeOptions={[10, 20, 50, 100]}
+          itemLabel="workers"
+        />
       </div>
     );
   };
 
   return (
     <div>
-      {/* Excel-like Project Site Tabs */}
-      <div className="sheet-tabs-bar no-print">
-        <button
-          className={`sheet-tab ${selectedSiteId === 'ALL' ? 'active' : ''}`}
-          onClick={() => onSelectSiteId('ALL')}
-        >
-          <Building2 size={14} />
-          ALL SITES ({records.length})
-        </button>
-        {sites.map((s) => {
-          const count = records.filter((r) => Number(r.site_id) === Number(s.id)).length;
-          return (
-            <button
-              key={s.id}
-              className={`sheet-tab ${Number(selectedSiteId) === Number(s.id) ? 'active' : ''}`}
-              onClick={() => onSelectSiteId(s.id)}
-            >
-              <span>{s.code}</span>
-              <span>{s.name}</span>
-              <span
-                style={{
-                  fontSize: 10,
-                  padding: '1px 6px',
-                  borderRadius: 99,
-                  background: 'rgba(0,0,0,0.2)',
-                }}
-              >
-                {count}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
       {/* Controls Bar */}
       <div
         className="card no-print"
         style={{ padding: '12px 16px', marginBottom: 16, display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <select
+            className="select"
+            style={{ fontWeight: 700, minWidth: 220 }}
+            value={selectedSiteId}
+            onChange={(e) =>
+              onSelectSiteId(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value))
+            }
+          >
+            <option value="ALL">ALL SITES ({records.length})</option>
+            {sites.map((s) => {
+              const count = records.filter((r) => Number(r.site_id) === Number(s.id)).length;
+              return (
+                <option key={s.id} value={s.id}>
+                  {s.code} {s.name} ({count})
+                </option>
+              );
+            })}
+          </select>
+
           <div style={{ position: 'relative' }}>
             <Search
               size={15}
@@ -1159,10 +1171,10 @@ export default function PayrollSheetView({
 
       {/* Render GCash and Cash Tables just like the Excel Workbook */}
       {(paymentFilter === 'ALL' || paymentFilter === 'GCASH') &&
-        renderSectionTable('WEEKLY PAYROLL REPORT (GCASH)', 'GCASH', gcashRecords)}
+        renderSectionTable('WEEKLY PAYROLL REPORT (GCASH)', 'GCASH', gcashRecords, gcashPage, setGcashPage)}
 
       {(paymentFilter === 'ALL' || paymentFilter === 'CASH') &&
-        renderSectionTable('WEEKLY PAYROLL REPORT (CASH)', 'CASH', cashRecords)}
+        renderSectionTable('WEEKLY PAYROLL REPORT (CASH)', 'CASH', cashRecords, cashPage, setCashPage)}
 
       {/* Modal: Add Worker to Site Payroll */}
       {showAddModal && (
